@@ -1,37 +1,51 @@
 {
-  // VSCode 调试配置。用法：左侧"运行和调试"(Ctrl+Shift+D) → 顶部下拉选配置 → F5 启动
-  "version": "0.2.0",
-  "configurations": [
-    {
-      // 调试预训练脚本（用小参数，方便单步跟）
-      "name": "调试: train_pretrain (小参数)",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "/home/qiaohui/Project/minimind/trainer/train_pretrain.py",
-      "python": "/home/qiaohui/Project/minimind/.venv/bin/python",
-      // cwd 设为 trainer 目录，这样 ../dataset/ 这类相对路径才找得到
-      "cwd": "/home/qiaohui/Project/minimind/trainer",
-      "console": "integratedTerminal",
-      // justMyCode=false → 允许单步进入 torch/transformers/模型内部代码
-      "justMyCode": false,
-      "args": [
-        "--data_path", "../dataset/pretrain_t2t_mini.jsonl",
-        "--epochs", "1",
-        "--batch_size", "2",
-        "--num_workers", "0",     // ★关键：必须设0，否则 __getitem__ 里的断点打不上
-        "--log_interval", "1",
-        "--accumulation_steps", "1"
-      ]
-    },
-    {
-      // 调试数据管线小脚本（不碰GPU，最适合先理解数据流）
-      "name": "调试: 当前打开的文件",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${file}",
-      "python": "/home/qiaohui/Project/minimind/.venv/bin/python",
-      "console": "integratedTerminal",
-      "justMyCode": false
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "调试: 当前文件",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "python": "/Users/qiaohui/miniconda3/envs/minimind/bin/python",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "调试: train_pretrain (小参数)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/trainer/train_pretrain.py",
+            "python": "/Users/qiaohui/miniconda3/envs/minimind/bin/python",
+            "cwd": "${workspaceFolder}/trainer",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--data_path", "../dataset/pretrain_t2t_mini.jsonl",
+                "--epochs", "1",
+                "--batch_size", "2",
+                "--num_workers", "0",
+                "--log_interval", "1",
+                "--accumulation_steps", "1",
+                "--device", "cpu"
+            ]
+        },
+        {
+            "name": "调试: train_full_sft (小参数)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/trainer/train_full_sft.py",
+            "python": "/Users/qiaohui/miniconda3/envs/minimind/bin/python",
+            "cwd": "${workspaceFolder}/trainer",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--epochs", "1",
+                "--batch_size", "2",
+                "--num_workers", "0",
+                "--log_interval", "1",
+                "--accumulation_steps", "1",
+                "--device", "cpu"
+            ]
+        }
+    ]
 }

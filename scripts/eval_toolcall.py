@@ -1,3 +1,11 @@
+"""
+MiniMind Tool Call 评测脚本
+用于测试模型是否能正确识别用户意图并调用工具（Function Calling）。
+支持两种模式：本地模型推理 / OpenAI 兼容 API 调用。
+
+整体流程：
+1. 用户提问 → 2. 模型判断要调用哪个工具 → 3. 执行工具（mock） → 4. 把结果喂回模型 → 5. 模型生成最终回答
+"""
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -15,6 +23,8 @@ from model.model_minimind import MiniMindConfig, MiniMindForCausalLM
 from trainer.trainer_utils import setup_seed, get_model_params
 warnings.filterwarnings('ignore')
 
+# ========== 工具定义 ==========
+# 每个工具包含名称、描述、参数 schema，模型根据这些信息决定调用哪个工具
 TOOLS = [
     {"type": "function", "function": {"name": "calculate_math", "description": "计算数学表达式的结果，支持加减乘除、幂运算、开方等", "parameters": {"type": "object", "properties": {"expression": {"type": "string", "description": "数学表达式，如123+456、2**10、sqrt(144)"}}, "required": ["expression"]}}},
     {"type": "function", "function": {"name": "get_current_time", "description": "获取当前日期和时间，支持指定时区", "parameters": {"type": "object", "properties": {"timezone": {"type": "string", "description": "时区名称，如Asia/Shanghai、America/New_York", "default": "Asia/Shanghai"}}, "required": []}}},
@@ -26,6 +36,8 @@ TOOLS = [
     {"type": "function", "function": {"name": "translate_text", "description": "将文本翻译成目标语言", "parameters": {"type": "object", "properties": {"text": {"type": "string", "description": "要翻译的文本"}, "target_language": {"type": "string", "description": "目标语言，如english、chinese、japanese、french"}}, "required": ["text", "target_language"]}}},
 ]
 
+# ========== 模拟工具执行 ==========
+# 真实场景会调 API/数据库，这里用 mock 返回假数据，只测模型的调用能力
 MOCK_RESULTS = {
     "calculate_math": lambda args: {"result": str(eval(str(args.get("expression", "0")).replace("^", "**").replace("×", "*").replace("÷", "/").replace("−", "-").replace("²", "**2").replace("³", "**3").replace("（", "(").replace("）", ")")))},
     "get_current_time": lambda args: {"datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "timezone": args.get("timezone", "Asia/Shanghai")},
@@ -37,11 +49,15 @@ MOCK_RESULTS = {
     "translate_text": lambda args: {"translated": "hello world"},
 }
 
+# 工具名 → 工具定义的快速查找表
 TOOL_MAP = {t["function"]["name"]: t for t in TOOLS}
 
 def get_tools(names):
+    """根据工具名列表获取对应的工具定义"""
     return [TOOL_MAP[n] for n in names]
 
+# ========== 测试用例 ==========
+# 每个用例包含用户提问 + 该场景下可用的工具子集
 TEST_CASES = [
     {"prompt": "帮我算一下 256 乘以 37 等于多少", "tools": ["calculate_math", "get_current_time"]},
     {"prompt": "现在几点了？", "tools": ["get_current_time", "random_number"]},
@@ -55,19 +71,24 @@ TEST_CASES = [
 
 
 def init_model(args):
+    """加载模型和 tokenizer。支持两种格式：原生 torch 权重 或 HuggingFace transformers 格式"""
     tokenizer = AutoTokenizer.from_pretrained(args.load_from)
     if 'model' in args.load_from:
+        # 原生 torch 权重：手动建模型 + 加载 .pth
         model = MiniMindForCausalLM(MiniMindConfig(hidden_size=args.hidden_size, num_hidden_layers=args.num_hidden_layers, use_moe=bool(args.use_moe)))
         moe_suffix = '_moe' if args.use_moe else ''
         ckp = f'./{args.save_dir}/{args.weight}_{args.hidden_size}{moe_suffix}.pth'
         model.load_state_dict(torch.load(ckp, map_location=args.device), strict=True)
     else:
+        # HuggingFace 格式：一行搞定
         model = AutoModelForCausalLM.from_pretrained(args.load_from, trust_remote_code=True)
     get_model_params(model, model.config)
+    # .half()=FP16省显存, .eval()=关闭dropout等训练行为
     return model.half().eval().to(args.device), tokenizer
 
 
 def parse_tool_calls(text):
+    """从模型输出中提取 <tool_call>...</tool_call> 标签内的 JSON，返回工具调用列表"""
     matches = re.findall(r'<tool_call>(.*?)</tool_call>', text, re.DOTALL)
     calls = []
     for m in matches:
@@ -79,6 +100,7 @@ def parse_tool_calls(text):
 
 
 def parse_tool_call_from_text(content):
+    """同上，但返回 OpenAI API 格式的 tool_calls（用于 API 模式）"""
     pattern = r'<tool_call>\s*(\{.*?\})\s*</tool_call>'
     matches = re.findall(pattern, content, re.DOTALL)
     if not matches:
@@ -97,6 +119,7 @@ def parse_tool_call_from_text(content):
 
 
 def execute_tool(call, arguments=None):
+    """执行工具调用（实际是查 MOCK_RESULTS 返回假数据）"""
     name = call.get("name", "") if isinstance(call, dict) else call
     try:
         raw_args = call.get("arguments", {}) if isinstance(call, dict) else arguments
@@ -113,6 +136,7 @@ def execute_tool(call, arguments=None):
 
 
 def generate(model, tokenizer, messages, tools, args):
+    """本地模型推理：把对话历史 + 工具定义拼成 prompt，让模型生成回复"""
     streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
     input_text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, tools=tools, open_thinking=False)
     inputs = tokenizer(input_text, return_tensors="pt", truncation=True).to(args.device)
@@ -131,6 +155,7 @@ def generate(model, tokenizer, messages, tools, args):
 
 
 def chat_api(client, messages, tools, args, stream=True):
+    """通过 OpenAI 兼容 API 调用模型（如 Ollama），支持流式/非流式"""
     response = client.chat.completions.create(
         model=args.api_model, messages=messages, tools=tools,
         stream=stream, temperature=args.temperature,
@@ -175,6 +200,10 @@ def chat_api(client, messages, tools, args, stream=True):
 
 
 def run_case(prompt, tools, args, model=None, tokenizer=None, client=None):
+    """
+    执行一轮完整的 tool call 对话循环：
+    用户提问 → 模型生成（可能包含 tool_call）→ 执行工具 → 结果喂回模型 → 重复直到模型不再调工具
+    """
     messages = [{"role": "user", "content": prompt}]
     while True:
         if args.backend == 'local':
@@ -199,6 +228,7 @@ def run_case(prompt, tools, args, model=None, tokenizer=None, client=None):
             messages.append({"role": "tool", "content": json.dumps(result, ensure_ascii=False)} if args.backend == 'local' else {"role": "tool", "content": json.dumps(result, ensure_ascii=False), "tool_call_id": tc["id"]})
 
 
+# ========== 主函数 ==========
 def main():
     parser = argparse.ArgumentParser(description="MiniMind ToolCall评测")
     parser.add_argument('--backend', default='local', choices=['local', 'api'], type=str, help="推理后端（local=本地模型，api=OpenAI兼容接口）")

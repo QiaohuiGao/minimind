@@ -65,8 +65,8 @@ jsonl ({"text":...})
   → DataLoader                    [train_pretrain.py:162]      拼成batch input_ids[B,L]
   → .to(device)                   [train_pretrain.py:28]
   → model.forward(input_ids,labels) [model_minimind.py:443]
-        embed → Transformer → hidden[B,L,768] → lm_head → logits[B,L,6400]
-        → logits[:-1] 预测 labels[1:] → cross_entropy → loss
+    embed → Transformer → hidden[B,L,768] → lm_head → logits[B,L,6400]
+    → logits[:-1] 预测 labels[1:] → cross_entropy → loss
   → backward + optimizer.step     [train_pretrain.py:37-49]
   → 日志/保存                      [train_pretrain.py:51-69]
 ```
@@ -148,6 +148,92 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 > batch 32→128(×4)：AdamW 推荐 √4=×2，即 `5e-4 → 1e-3`。
 >
 > **真正提速的手段（不是加batch）：** `--use_compile 1`(torch.compile) / 减少 `--epochs`。
+
+---
+
+## Q11. GPU 内存结构（HBM vs SRAM）与 Flash Attention 的关系
+
+> **笔记：**
+> - **HBM（显存）**：就是"24GB显存"，大但慢（~2 TB/s）。存模型权重、Q/K/V 等所有数据。
+> - **SRAM（片上缓存）**：每个 SM（计算核心）自带，几十～几百KB，超快（~19 TB/s，快 10 倍）但极小。
+> - Flash Attention 本质：把 Q·K·V 分块搬到 SRAM 里算完直接累加，不把 S×S 中间矩阵写回 HBM。减少搬运 = 提速。
+
+## Q12. 两个 Triton（完全不同的东西）
+
+> **笔记：**
+> - **OpenAI Triton**：GPU 编程语言，用 Python 语法写 GPU kernel（如 Flash Attention），替代繁琐的 CUDA C++，自动管理线程和内存。
+> - **NVIDIA Triton Inference Server**：模型部署服务器，把训练好的模型上线对外提供 HTTP/gRPC API，支持自动 batching、多模型调度。和 Flash Attention 无关。
+>
+> | | OpenAI Triton | NVIDIA Triton |
+> |---|---|---|
+> | 是什么 | GPU 编程语言 | 模型部署服务器 |
+> | 干什么 | 写高性能 GPU 算子 | 模型上线对外服务 |
+> | 阶段 | 训练/算子开发 | 推理/部署 |
+
+## Q13. Flash Attention 的触发条件详解
+
+> **笔记：** 代码中 `if self.flash and (seq_len > 1) and (not self.is_causal or past_key_value is None) and (attention_mask is None or torch.all(attention_mask == 1))`，四个条件全满足才用 Flash：
+> 1. `self.flash`：硬件支持（PyTorch 2.0+ 且 GPU 支持）
+> 2. `seq_len > 1`：推理逐 token 时 S=1，S×S=1，没优化空间
+> 3. `not is_causal or 无缓存`：KV Cache 推理时 Q 和 K 长度不同，Flash 的 `is_causal=True` 假设等长会算错
+> 4. `无 PAD mask 或全1`：Flash 不支持自定义 PAD mask
+>
+> 实际效果：训练→几乎总走 Flash；推理 prefill（处理 prompt）→ Flash；推理 decode（逐 token）→ 手动路径。
+
+## Q14. 什么是残差连接（Residual Connection）？
+
+> **笔记：** `output = x + f(x)`，把输入直接加到输出上。
+> - 每层只需学"改动量"而非"全部"，任务更简单。
+> - 给梯度提供直通公路：`∂output/∂x = 1 + ∂f/∂x`，那个 1 保证梯度不会消失。没有残差，深层网络梯度连乘→消失→训不动。
+
+## Q15. Pre-Norm vs Post-Norm
+
+> **笔记：**
+> - Post-Norm（原始 Transformer）：`x = Norm(x + Attention(x))`，残差被包在 Norm 里。
+> - Pre-Norm（现代 LLM）：`x = x + Attention(Norm(x))`，残差在 Norm 外面。
+>
+> Pre-Norm 的优势：残差路径 `x₈ = x₀ + f₁ + f₂ + ... + f₈`，反传时 `∂x₈/∂x₀` 恒有常数 1，梯度直通不衰减。Post-Norm 的梯度要穿过每层 Norm 的缩放，层数多了会衰减。
+>
+> | | Post-Norm | Pre-Norm |
+> |---|---|---|
+> | 训练稳定性 | 差，需要 warmup | 好，不容易崩 |
+> | 深层网络 | 难训（梯度消失） | 轻松堆几十上百层 |
+> | 效果 | 训好了可能略好 | 略差但差距极小 |
+>
+> 现代 LLM 全用 Pre-Norm：稳定训练比理论最优更重要。
+
+---
+
+## 待深入拓展问题（超出 MiniMind 代码本身，未来研究）
+
+### 多头注意力 & Attention 机制
+- [ ] **为什么多头比单个大头好？** 一次 softmax 只能产出一种注意力分布，多头 = 多种模式并行。但"子空间学不同模式"具体是什么？推荐看 Jay Alammar Illustrated Transformer + 3Blue1Brown Attention 视频 + AttentionViz 交互工具实际观察各头的 pattern。
+- [ ] **Attention head 实际学到了什么？** 有的头关注语法（主谓），有的关注语义（同义词），有的关注局部窗口。用 BertViz / AttentionViz 可视化工具实操体验。
+- [ ] **MHA vs GQA vs MQA 的工业选型依据？** 不只是参数量——要结合推理时 KV Cache 显存、吞吐量、模型质量 tradeoff 一起看。
+
+### 位置编码
+- [ ] **RoPE 的数学原理？** 旋转矩阵、复数乘法、为什么 Q·K 只依赖相对距离 |i-j|。当前只知道"旋转 Q/K"，还没理解公式推导。
+- [ ] **YaRN 外推的具体做法？** 低频压缩、高频保持、中频过渡——每一步的数学细节和为什么这样分。
+- [ ] **RoPE vs ALiBi vs Sinusoidal？** 各种位置编码方案的对比和演进。
+
+### 训练 & 优化
+- [ ] **反向传播在 Transformer 里具体怎么走？** 从 loss → lm_head → blocks → attention → q_proj.weight 的梯度链路。理解每层权重怎么更新。
+- [ ] **Tensor Parallelism 具体怎么切分 heads？** n_local_heads 在多 GPU 时怎么分配，all-reduce 怎么汇总。
+- [ ] **Weight Tying：什么时候该解绑？** 大模型（70B+）解绑 Embedding 和 LM Head 的实验对比和原因。
+
+### GPU & 系统
+- [ ] **GPU SM 架构详解？** CUDA core / Tensor core / warp / thread block 的层次关系。
+- [ ] **Flash Attention 的分块算法细节？** 在线 softmax（online softmax）怎么做到分块还能算精确 softmax，不是近似。
+- [ ] **OpenAI Triton 写一个简单 kernel？** 实操体验用 Python 语法写 GPU 代码，对比 CUDA C++。
+
+### MoE
+- [ ] **MoE 的路由策略有哪些？** Top-1 / Top-2 / Expert Choice，各自的 tradeoff。
+- [ ] **MoE 训练的负载均衡问题？** aux_loss 之外还有什么方法（如 Switch Transformer 的 capacity factor）。
+
+### 工程实践
+- [ ] **HuggingFace 的 AutoModel 注册机制？** model_type → config → model 的工厂模式，trust_remote_code 的安全风险。
+- [ ] **LoRA 的变体？** QLoRA（量化+LoRA）、DoRA、AdaLoRA，各自改进了什么。
+- [ ] **工业级 FFN intermediate_size 怎么选？** 经验上 ~2.67x hidden_size（对齐到 64/128），SwiGLU 的 3 个矩阵 vs 标准 FFN 的 2 个矩阵对参数量的影响。
 
 ---
 

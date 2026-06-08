@@ -9,6 +9,8 @@
 - Decoder-only Transformer：输入 token 序列，预测下一个 token。
 - Causal LM loss：第 `t` 个位置的 logits 预测第 `t+1` 个 token。
   > **笔记：** Causal = 只能看前面的 token（上三角 mask）。Loss = `CrossEntropy(logits[:-1], labels[1:])`，即位置 t 预测 t+1。与 BERT (Masked LM, 双向) 相对。
+  > **训练 vs 推理的 softmax：** 训练时 CrossEntropy 内部自带 softmax（合并计算更稳定），不需要手动做。推理时需要从 logits 选 token，才手动 softmax 得到概率分布再采样。
+  > **Causal Mask：** Attention 内部用上三角 mask（未来位置设为 -inf → softmax 后变 0），确保每个 token 只能看到自己和前面的 token。Flash Attention 通过 `is_causal=True` 自动实现。
 - Tokenizer：把文本变成 token id，模型只看 token id。
 
   > **笔记：** Tokenizer 由两个文件构成：`tokenizer.json`（词表+切词规则）和 `tokenizer_config.json`（特殊 token 定义 + chat_template 对话格式模板）。关键特殊 token：id0=PAD, id1=BOS(`<|im_start|>`), id2=EOS(`<|im_end|>`), id21-22=tool_call, id25-26=think。
@@ -80,6 +82,25 @@ PY
 - `MiniMindForCausalLM`
 
 3. 写一段自己的结构笔记：输入 `[B, T]` 如何变成 logits `[B, T, vocab]`。
+data_sequence->Tokenitor(shape:[B,T])->embedding(shape:[B,T,d_dimension])->postional_embedding(RoPE,q,k shape:[d_dimendion,1])
+->[rmsnorm->full_attention->rmsnorm->FFN/MoEFFN]*8->crossentropy->loss
+
+->inference: maxsoft->result
+
+cuasullm
+input_ids [B, T]
+  → embed_tokens [B, T, 768]
+  → dropout
+  → 8× MiniMindBlock:
+      → RMSNorm 
+      → Attention(Q/K加RoPE, GQA)
+      → 残差连接
+      → RMSNorm 
+      → SwiGLU FFN 
+      → 残差连接
+  → RMSNorm (最终)
+  → lm_head [B, T, 6400]   ← 这才是 logits
+  → softmax (推理时才用，训练时直接算 CrossEntropy)
 
 ## 训练注意事项
 
