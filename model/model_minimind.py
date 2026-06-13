@@ -63,7 +63,7 @@ class MiniMindConfig(PretrainedConfig):
         self.intermediate_size = kwargs.get("intermediate_size", math.ceil(hidden_size * math.pi / 64) * 64)
 
         # ---- 位置编码参数 ----
-        self.max_position_embeddings = kwargs.get("max_position_embeddings", 32768)  # 最大位置数(32K)
+        self.max_position_embeddings = kwargs.get("max_position_embeddings", 3276)  # 最大位置数(32K)
         self.rms_norm_eps = kwargs.get("rms_norm_eps", 1e-6)                         # RMSNorm的epsilon防除零
         self.rope_theta = kwargs.get("rope_theta", 1e6)                              # RoPE基础频率(越大支持越长序列)
 
@@ -257,11 +257,12 @@ class FeedForward(nn.Module):
     def forward(self, x):
         # SwiGLU: down(act(gate(x)) ⊙ up(x))
         return self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+    
+    
 # ---- MoE FFN (稀疏版) ----
 # 每个token被Router分配到top-k个Expert(这里k=1)处理
 # 相比Dense: 总参数量大(4个Expert)，但每个token只激活1个Expert
 # 效果: 用更多参数量换更强表达力，而计算量(FLOPs)基本不变
-#
 # 流程: x → Router(gate) → 选出top-1 Expert → Expert(x) * weight → 输出
 class MOEFeedForward(nn.Module):
     def __init__(self, config: MiniMindConfig):
@@ -314,7 +315,6 @@ class MOEFeedForward(nn.Module):
 
 # Transformer Block (单层)
 # 一个标准的 Pre-Norm Transformer Decoder Block:
-#
 #   x ─────────────────────┐
 #   │                      │ (残差连接1)
 #   ├→ RMSNorm → Attention ─┘

@@ -170,9 +170,27 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 > | 干什么 | 写高性能 GPU 算子 | 模型上线对外服务 |
 > | 阶段 | 训练/算子开发 | 推理/部署 |
 
-## Q13. Flash Attention 的触发条件详解
+## Q13. Flash Attention 原理与触发条件
 
-> **笔记：** 代码中 `if self.flash and (seq_len > 1) and (not self.is_causal or past_key_value is None) and (attention_mask is None or torch.all(attention_mask == 1))`，四个条件全满足才用 Flash：
+> **笔记：Flash Attention = 注意力计算的加速算法，数学结果和普通 Attention 完全一样，不是近似。**
+>
+> **普通 Attention 的问题：**
+> ```
+> scores = Q @ K^T     # [B, heads, S, S] ← S很大时这个矩阵巨大
+> weights = softmax(scores)
+> output = weights @ V
+> ```
+> S=4096 时 S×S=1600万，这个中间矩阵要写到 HBM（显存），读写很慢。
+>
+> **Flash Attention 怎么解决：** 分块计算，不存中间矩阵。
+> ```
+> 普通：Q·K → 写回显存 → 读出来 softmax → 写回显存 → 读出来 × V
+> Flash：Q/K/V 分小块 → 搬到 SRAM（片上缓存，快10倍）→ 算完直接累加 → 只写最终结果回显存
+> ```
+> - **省显存**：不需要存 S×S 的中间矩阵
+> - **更快**：减少 HBM ↔ 计算单元之间的搬运次数（IO 是瓶颈，不是计算）
+>
+> **触发条件：** 代码中 `if self.flash and (seq_len > 1) and (not self.is_causal or past_key_value is None) and (attention_mask is None or torch.all(attention_mask == 1))`，四个条件全满足才用 Flash：
 > 1. `self.flash`：硬件支持（PyTorch 2.0+ 且 GPU 支持）
 > 2. `seq_len > 1`：推理逐 token 时 S=1，S×S=1，没优化空间
 > 3. `not is_causal or 无缓存`：KV Cache 推理时 Q 和 K 长度不同，Flash 的 `is_causal=True` 假设等长会算错
@@ -234,6 +252,145 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 - [ ] **HuggingFace 的 AutoModel 注册机制？** model_type → config → model 的工厂模式，trust_remote_code 的安全风险。
 - [ ] **LoRA 的变体？** QLoRA（量化+LoRA）、DoRA、AdaLoRA，各自改进了什么。
 - [ ] **工业级 FFN intermediate_size 怎么选？** 经验上 ~2.67x hidden_size（对齐到 64/128），SwiGLU 的 3 个矩阵 vs 标准 FFN 的 2 个矩阵对参数量的影响。
+
+---
+
+## Q16. SwiGLU FFN 的结构（gate_proj / up_proj / down_proj）
+
+> **笔记：** 现代 LLM 的 FFN 不再是传统的两层 Linear+ReLU，而是 **SwiGLU**（三个线性层 + 门控机制）。
+>
+> **代码位置：** `model/model_minimind.py` 的 MiniMindMLP 类。
+>
+> ```python
+> def __init__(self, config, intermediate_size=None):
+>     intermediate_size = intermediate_size or config.intermediate_size
+>     self.gate_proj = nn.Linear(hidden_size, intermediate_size, bias=False)  # 门控投影
+>     self.up_proj   = nn.Linear(hidden_size, intermediate_size, bias=False)  # 升维投影
+>     self.down_proj = nn.Linear(intermediate_size, hidden_size, bias=False)  # 降维投影
+>     self.act_fn    = ACT2FN[config.hidden_act]  # SiLU 激活函数
+> ```
+>
+> **数据流（forward）：**
+> ```
+> x ─→ gate_proj ─→ SiLU ─┐
+>                           ├─→ 逐元素相乘 ─→ down_proj ─→ 输出
+> x ─→ up_proj ────────────┘
+> ```
+> 即 `down_proj(SiLU(gate_proj(x)) * up_proj(x))`
+>
+> **各变量含义：**
+> | 变量 | 全称 | 作用 | 维度变化 |
+> |------|------|------|----------|
+> | `gate_proj` | gate projection | 算门控值，经 SiLU 后决定哪些信息通过 | hidden → intermediate |
+> | `up_proj` | up projection | 升维，提取特征 | hidden → intermediate |
+> | `down_proj` | down projection | 降回原始维度 | intermediate → hidden |
+> | `act_fn` | activation function | SiLU = x × sigmoid(x)，平滑门控 | 不变 |
+> | `intermediate_size` | FFN 中间维度 | 一般 ≈ hidden_size × π（对齐到64） | — |
+>
+> **为什么叫"gate"：** `gate_proj` 经过 SiLU 后值域在 (-0.28, +∞)，接近 0 → "关门"（抑制），大值 → "开门"（放行），与 `up_proj` 相乘 = 选择性保留信息。
+>
+> **对比传统 FFN：**
+> | | 传统 FFN | SwiGLU FFN |
+> |---|---|---|
+> | 结构 | up → ReLU → down（2个矩阵） | gate+up → SiLU×乘 → down（3个矩阵） |
+> | 门控 | 无 | 有（gate_proj 控制信息流） |
+> | 效果 | 基线 | 更好（PaLM/LLaMA 验证） |
+>
+> **`intermediate_size` 为什么不用 `self`：** 它只是 `__init__` 里的临时局部变量，用来创建 `nn.Linear` 后就不再需要——数值已"固化"进权重矩阵的形状里，后续方法不会再读这个数字。
+>
+> **`ACT2FN` 是什么：** 来自 `from transformers.activations import ACT2FN`，是 HuggingFace 提供的激活函数字典，`ACT2FN['silu']` 返回 `nn.SiLU()`。
+
+---
+
+## Q17. KV Cache 在哪个设备上？训练时用不用？
+
+> **笔记：** KV Cache **跟模型在同一个设备上**（GPU 训练就在 GPU）。
+>
+> Cache 里存的是 Attention 里 `k_proj(x)` 和 `v_proj(x)` 的输出，这些 tensor 由 GPU 上的 `nn.Linear` 算出，PyTorch tensor 保留在计算它的设备上，不会自动跑去 CPU。下一步推理时 `torch.cat([past_key, new_key])` 要求两者在同一设备，所以 cache 自然一直在 GPU 上。
+>
+> **训练时一般不用 KV Cache**——整个序列一起算更快（并行）。KV Cache 主要用于**推理时逐 token 生成**，避免重复计算历史 token 的 K/V。
+>
+> **KV Cache 的具体结构：**
+> ```python
+> past_key_values = [
+>     (key_0, value_0),   # 第 0 层的缓存
+>     (key_1, value_1),   # 第 1 层的缓存
+>     ...
+>     (key_N, value_N),   # 第 N 层的缓存
+> ]
+> ```
+> 每个 key/value 的 shape：`[B, cached_seq_len, kv_heads, head_dim]`
+>
+> 以 `hidden_size=128, num_kv_heads=2, head_dim=32` 为例，已生成 10 个 token 时：
+> - `past_key_values[0]` → 第 0 层的 `(key, value)` 元组
+> - `past_key_values[0][0]` → 第 0 层的 key，shape `[B, 10, 2, 32]`
+> - `past_key_values[0][0].shape[1]` → `10`（已缓存 token 数，用于算 `start_pos` 给 RoPE 定位）
+>
+> **推理时逐 token 增长：**
+> ```
+> 第 1 步: key shape = [1, 1, 2, 32]   # 1 个 token
+> 第 2 步: key shape = [1, 2, 2, 32]   # cat 后 2 个
+> 第 3 步: key shape = [1, 3, 2, 32]   # cat 后 3 个
+> ...每步只算新 token 的 Q/K/V (seq_len=1)，新 K/V cat 到缓存，避免重算历史。
+> ```
+>
+> **KV Cache 完整推理流程（以生成"你好吗"为例）：**
+>
+> 第 1 步：处理 prompt "你"
+> ```
+> past_key_values = [None, None, ..., None]   # 每层都是 None
+> start_pos = 0
+> 每层 Attention：past_key_value=None → 不拼接
+>   xk = k_proj(x)  # [1, 1, 2, 32]  (1个token)
+>   past_kv = (xk, xv)  ← 存下来返回
+> presents = [(k0,v0), (k1,v1), ..., (kN,vN)]
+> ```
+>
+> 第 2 步：生成 "好"
+> ```
+> past_key_values = 上一步的 presents
+> start_pos = 1  ← past_key_values[0][0].shape[1]
+> 每层 Attention：只算新 token 的 Q/K/V (seq_len=1)
+>   xk = cat([past_key_value[0], new_xk], dim=1)
+>        [1,1,2,32] + [1,1,2,32] → [1,2,2,32]  (两个token的K)
+>   past_kv = (xk, xv)  ← 更新缓存
+> ```
+>
+> 第 3 步：生成 "吗"
+> ```
+> start_pos = 2
+>   xk = cat([past, new], dim=1)
+>        [1,2,2,32] + [1,1,2,32] → [1,3,2,32]  (三个token的K)
+> ```
+>
+> **关键代码对应：**
+> - `start_pos = past_key_values[0][0].shape[1]`：从缓存推断已生成多少 token
+> - `position_embeddings = freqs_cos[start_pos:start_pos+seq_length]`：RoPE 只取新 token 的位置
+> - `xk = torch.cat([past_key_value[0], xk], dim=1)`：历史 K + 新 K 拼接
+> - 每步只算新 token 的 Q/K/V，把新 K/V cat 到历史缓存，Attention 能看到所有历史 token 但不重算
+>
+> **transformers 5.x 兼容性：** transformers 5.x 把 KV Cache 从简单的 list 改成了 `Cache` 对象（有 `.layers` 属性）。minimind 按老格式（list）写的，所以代码里有：
+> ```python
+> if hasattr(past_key_values, 'layers'): past_key_values = None  # 新格式→丢弃
+> past_key_values = past_key_values or [None] * len(self.layers)  # 确保是 list
+> ```
+
+---
+
+## Q18. 为什么一个 Transformer Block 需要两个 RMSNorm？
+
+> **笔记：** `input_layernorm` 和 `post_attention_layernorm` 结构完全一样（都是 `RMSNorm(hidden_size)`），但它们是**两个独立实例，各自有独立的可学习参数 `weight`**。
+>
+> **数据流：**
+> ```
+> x → input_layernorm → Attention → 残差相加 → post_attention_layernorm → FFN → 残差相加 → 输出
+>     ^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+>     归一化 #1（自己的 weight）                    归一化 #2（自己的 weight）
+> ```
+>
+> **为什么不能共用一个：** Attention 之后的数据分布和之前不一样了，所以需要两组独立的缩放参数，分别学习"Attention 前怎么归一化"和"FFN 前怎么归一化"。
+>
+> 类比：两个人穿同款衣服（结构相同），但尺码不同（参数不同）。
 
 ---
 
