@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import seaborn
 from torch.autograd import Variable
 from transformers.activations import ACT2FN
+from transformers import PreTrainedModel, GenerationMixin, PretrainedConfig
+from transformers.modeling_outputs import MoeCausalLMOutputWithPast
+ 
 
 
 # # ==================== Annotated Transformer (学习用) ====================
@@ -682,29 +685,56 @@ class Block(nn.Module):
         self.post_attention_layernorm=RMSNorm(config.hidden_size,eps=config.rms_norm_eps)
         self.mlp=FeedFoward(config)if not config.use_moe else MOEFeedForward(config)
         
+from transformers import PreTrainedModel, GenerationMixin, PretrainedConfig
+ 
+class MyModel(PreTrainedModel, GenerationMixin):
+    config_class=PretrainedConfig
+    _tied_weights_keys = {"lm_head.weight": "model.embed_tokens.weight"}  # 声明权重绑定关系
         
-        
-        
-        
-        
-        
-# ==================== 测试 ====================
+    def __init__(self,config:Config=None):
+        self.config=config or MiniMindConfig()
+        super().__init__()
+        self.mode=MyModel(config) # Transformer主干
+        # lm_head = language_model_head (语言模型输出头): 768 → 6400
+        self.lm_head=nn.Linear(self.config.hidden_size,self.config.vocab_size,bias=False)
+        # 权重绑定: lm_head和embedding共享同一份权重矩阵，减少参数量
+        if self.config.tie_word_embeddings: 
+            self.model.embed_tokens.weight = self.lm_head.weight
+        self.post_init()  # HuggingFace的初始化后处理
+    
+    def forward(self, input_ids, attention_mask=None, past_key_values=None, use_cache=False, logits_to_keep=0, labels=None, **kwargs):
+        # Step 1: 通过Transformer主干得到hidden_states
+        hidden_states, past_key_values, aux_loss = self.model(input_ids, attention_mask, past_key_values, use_cache, **kwargs)
 
-if __name__ == "__main__":
-    config = Config()
-    attn = Attention(config)
-    feedforward=FeedFoward(config)
+        # Step 2: lm_head投影到词表空间
+        # logits_to_keep: 优化——只计算最后N个位置的logits(节省显存)
+        # 推理时只需最后1个位置，RL训练时只需completion部分
+        slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) else logits_to_keep
+        logits = self.lm_head(hidden_states[:, slice_indices, :])  # [B, S, 6400]
 
-    x = torch.randn(2, 5, config.hidden_size)
+        # Step 3: 计算loss (仅训练时有labels)
+        loss = None
+        if labels is not None:
+            # 自回归: 用位置t的logits预测位置t+1的token
+            # logits[:-1] 预测 labels[1:]
+            x, y = logits[..., :-1, :].contiguous(), labels[..., 1:].contiguous()
+            loss = F.cross_entropy(x.view(-1, x.size(-1)), y.view(-1), ignore_index=-100)  # -100位置不算loss
 
-    freqs_cos, freqs_sin = procompute_freqs_cis(
-        dim=config.head_dim,
-        end=config.max_position_embeddings,
-        rope_base=config.rope_theta)
-    seq_len = x.shape[1]
-    position_embeddings = (freqs_cos[:seq_len], freqs_sin[:seq_len])
-
-    output, past_kv = attn(x, position_embeddings)
-    print(f"最终输出: {output.shape}")
-    new_output=feedforward(x)
-    print(x.shape)
+        return MoeCausalLMOutputWithPast(loss=loss, aux_loss=aux_loss, logits=logits, past_key_values=past_key_values, hidden_states=hidden_states)
+        
+        
+    # 自回归生成 (推理)
+    # 自定义generate，不用HuggingFace的默认实现
+    # 支持: KV Cache / temperature / top_k / top_p / repetition_penalty / streaming
+    #
+    # 每步循环:
+    #   1. 只输入新token(利用KV Cache)
+    #   2. 取最后位置logits
+    #   3. temperature缩放 → repetition penalty → top_k截断 → top_p截断
+    #   4. 采样得到next_token
+    #   5. 拼接到input_ids，重复直到EOS或达到max长度
+    @torch.inference_mode
+    def generate(self, inputs = None, attention_mask=None, ax_new_tokens=8192, temperature=0.85, top_p=0.85, top_k=50, 
+                 eos_token_id=2, streamer=None, use_cache=True, 
+                 num_return_sequences=1, do_sample=True, repetition_penalty=1.0, **kwargs):
+       

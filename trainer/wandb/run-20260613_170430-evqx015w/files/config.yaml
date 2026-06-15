@@ -1,0 +1,68 @@
+_wandb:
+    value:
+        cli_version: 0.27.2
+        e:
+            vi2gz9wm7u2v5xz9sv3nei3ujonrjosy:
+                args:
+                    - --use_wandb
+                    - --epochs
+                    - "1"
+                codePath: trainer/train_pretrain.py
+                codePathLocal: train_pretrain.py
+                cpu_count: 24
+                cpu_count_logical: 24
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1006773899264"
+                        used: "193870528512"
+                email: 0721gqh@gmail.com
+                executable: /home/qiaohui/Project/minimind/.venv/bin/python
+                git:
+                    commit: 536f76ca42818f16d83f54c587f444f4206c0f81
+                    remote: https://github.com/QiaohuiGao/minimind.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                      uuid: GPU-e552bcb2-68d9-6186-cf78-a3e18fda64ea
+                host: RTX-Pro-6000-Workstation
+                memory:
+                    total: "100471738368"
+                os: Linux-6.17.0-19-generic-x86_64-with-glibc2.39
+                program: /home/qiaohui/Project/minimind/trainer/train_pretrain.py
+                python: CPython 3.13.9
+                root: /home/qiaohui/Project/minimind/trainer
+                startedAt: "2026-06-13T21:04:30.018455Z"
+                writerId: vi2gz9wm7u2v5xz9sv3nei3ujonrjosy
+        m: []
+        python_version: 3.13.9
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "3":
+                - 13
+            "4": 3.13.9
+            "5": 0.27.2
+            "6": 4.57.6
+            "12": 0.27.2
+            "13": linux-x86_64

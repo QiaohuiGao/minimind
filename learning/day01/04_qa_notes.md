@@ -394,6 +394,145 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 
 ---
 
+## 🔧 对 train_pretrain.py 的改动记录（为做对照实验）
+
+为了方便做超参对照实验 + wandb 可视化，对脚本做了 4 处改动：
+
+1. **可视化换成 wandb**：`import swanlab as wandb` → `import wandb`（用 wandb.ai，国外可直接访问）。需先 `wandb login`（key 40位，从 wandb.ai/authorize 复制）。
+2. **新增 `--max_steps` 参数**：跑到第 N 步自动停（默认 0=不限制）。做对照实验时设 `--max_steps 1000`，省得手动 Ctrl+C。实现：循环里 `if args.max_steps and step >= args.max_steps: break`。
+3. **暴露全部架构超参为 CLI 参数**：原本只有 hidden_size/num_hidden_layers/use_moe 能从命令行改，其余写死在 MiniMindConfig。现新增 11 个：`num_attention_heads / num_key_value_heads / head_dim / intermediate_size / dropout / rope_theta / max_position_embeddings / num_experts / num_experts_per_tok / moe_intermediate_size / router_aux_loss_coef`，并用 `config_kwargs` 全部传进 MiniMindConfig（head_dim/intermediate_size/moe_intermediate_size 用 0=auto）。同时加了**启动安全校验**（见下方约束）。
+4. **wandb 运行名自动反映改动 + config**：运行名改成**自动检测"与默认值不同的参数"**生成（如 `lr0.001`、`nah16-nkv4`，全默认则 `baseline`），并 `wandb.init(..., config=vars(args))` 记录完整超参，可在 wandb Runs 表/平行坐标图分析"任意超参→loss"。
+
+**架构参数约束（经对抗式验证，违反会在启动时 assert 报错）：**
+- `num_attention_heads % num_key_value_heads == 0`（GQA 约束）
+- `head_dim` 必须为偶数（RoPE 要求）；若 `hidden_size//num_attention_heads` 为奇数，需显式传偶数 `--head_dim`
+- `max_position_embeddings >= max_seq_len`
+- MoE 时 `1 <= num_experts_per_tok <= num_experts`
+
+> 实验指令集见 [06_experiment_commands.md](06_experiment_commands.md)（组 A~J），观察表见 [05_experiment_log.md](05_experiment_log.md)。
+> ⚠️ wandb 踩坑：`wandb`(国外40位key) ≠ `swanlab`(国产86位key)，别把 swanlab 的 key 贴进 `wandb login`。新版 key 格式 `wandb_v1_...` 需较新版 wandb（`pip install -U wandb`）。
+
+### MiniMindConfig 全部超参速查表
+
+| 参数 | 默认 | 类别 | 一句话作用 | 改大影响 |
+|------|------|------|-----------|---------|
+| hidden_size | 768 | 结构(宽) | 模型宽度 d_model | 容量↑质量↑，参数∝O(h²)、慢 |
+| num_hidden_layers | 8 | 结构(深) | Transformer 层数 | 容量↑，参数/算力线性↑ |
+| num_attention_heads | 8 | 注意力 | Q 头数 | 子空间更细，每头维度变小 |
+| num_key_value_heads | 4 | 注意力 | KV 头数(GQA) | <Q头=GQA省KV显存；=Q头=MHA |
+| head_dim | 96(auto) | 注意力 | 每头维度 | 单头容量↑，q/k/v/o 参数线性↑ |
+| intermediate_size | 2432(auto) | FFN | FFN 中间维度 | 容量↑(仅次于hidden)，参数线性↑ |
+| hidden_act | silu | FFN | 激活函数 | 影响收敛，差异通常小 |
+| dropout | 0.0 | 正则 | 丢弃率 | >0 防过拟合，训练loss略升 |
+| rope_theta | 1e6 | 位置编码 | RoPE 基础频率 | 影响长上下文外推 |
+| max_position_embeddings | 3276 | 位置编码 | 最大位置数 | 决定最长上下文(须≥seq_len) |
+| tie_word_embeddings | True | 词表 | embed/lm_head 共享权重 | 省参数、小模型质量↑ |
+| vocab_size | 6400 | 词表 | 词表大小 | 须与tokenizer一致，改需重训 |
+| use_moe | False | MoE | 是否用专家混合 | 开后总参数↑但稀疏激活 |
+| num_experts | 4 | MoE | 专家总数 | 容量↑、参数/路由开销↑ |
+| num_experts_per_tok | 1 | MoE | 每token激活专家数 | 激活算力↑、质量↑(须≤num_experts) |
+| moe_intermediate_size | =inter(auto) | MoE | 单专家FFN中间维度 | 单专家容量↑ |
+| router_aux_loss_coef | 5e-4 | MoE | 负载均衡loss权重 | 强制均衡、防专家坍塌 |
+| flash_attn | True | 实现 | Flash Attention 加速 | 提速降显存，结果等价 |
+| rms_norm_eps | 1e-6 | 数值 | RMSNorm 防除零 | 影响数值稳定，常规默认 |
+
+---
+
+## 📊 训练记录 #1：第一次完整预训练（2026-06-02）
+
+**模型规模：**
+- Model Params: **63.91M**（Trainable 63.912M）—— 稠密模型，未开 MoE
+
+**超参数：**
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 数据集 | `pretrain_t2t_mini.jsonl` (1.2G) | mini 版预训练数据 |
+| hidden_size | 768 | 隐藏层维度 |
+| num_hidden_layers | 8 | Transformer 层数 |
+| use_moe | 0 | 未用 MoE（所以 aux_loss 恒 0）|
+| batch_size | 128 | （从默认 32 改成 128）|
+| learning_rate | 5e-4 → 5e-5 | 初始 lr，cosine 衰减到最小 |
+| epochs | 2 | 每 epoch 9924 步 |
+| 硬件 | RTX PRO 6000 Blackwell (96G) | 显存仅用 ~8G |
+
+**loss 轨迹（关键节点）：**
+```
+Epoch 1: 7.28(起步,随机初始化) → 4.51(step1000) → 2.97(step2400) → 2.22(epoch末)
+Epoch 2: 2.10(起步) → 2.05(中段) → 1.98(最终)
+```
+> **观察：**
+> - 第1轮前期 loss 暴降（7.28→3 只用了约 2400 步），这是模型快速学到基本语言规律；之后下降变缓。
+> - 第2轮 loss 在 1.9~2.1 之间小幅波动，已接近该规模+该数据量的收敛区间。
+> - 单条 loss 有抖动（如 2.15↔1.93）正常——不同 batch 难易不同。看**整体趋势**而非单点。
+> - loss≈2.0 对应 perplexity≈e²≈7.4，比起步的 e^7.3≈1480 大幅下降，模型从"瞎猜"变得相当确定。
+
+**产物：** `out/pretrain_768.pth`（132M，半精度权重）+ `checkpoints/` 续训存档。
+
+**下一步：** 用此 base 权重做 SFT（`train_full_sft.py` + `sft_t2t_mini.jsonl`）→ 得到会对话的 `full_sft_768.pth`。
+
+> **踩坑提醒：** 跑这次前误切到了 `(qiaohui)` conda 环境（不是 `.venv`），导致 `No module named 'datasets'`。注意 `datasets`(HF库) ≠ `dataset`(本地文件夹)，别把 import 路径 `dataset.lm_dataset` 改成 `datasets.lm_dataset`。环境永远确认命令行前缀是 `(.venv)`。
+
+---
+
+## 📈 实验观察规律：learning rate & batch size（亲手实验得出）
+
+### A. learning rate（基础值 = 5e-4）
+
+> **核心规律（用自己的数据验证）：larger lr 前期降得快，但后期"太粗糙"overshoot，最终结果反而差。**
+
+实测——同一组 lr，对比第 100 步（早期）和第 1000 步（后期）的 loss：
+
+| lr | step 100（早期）| step 1000（最终）| 现象 |
+|------|---------------|----------------|------|
+| 1e-4 | 7.67 | 5.50 | 太小，降得慢 |
+| 3e-4 | 7.30 | 4.52 | 好 |
+| **5e-4** | 7.28 | **4.49** | **最终最好（=默认值）** |
+| 1e-3 | **7.22（早期最低！）** | 5.06 | 前期快、后期被反超 |
+| 5e-3 | 7.48 | 6.02 | 偏大，降得慢 |
+| 5e-2 | **31.3（爆炸）** | 7.15 | 发散，先飙升再部分恢复 |
+
+> **结论：**
+> 1. `1e-3` 第 100 步 loss 最低（早期最快），但第 1000 步被 `5e-4/3e-4` 反超 → 印证"大 lr 前期快、后期 overshoot"。原因：lr 大 = 每步 step 大，靠近 minimum 时会"冲过头"停不准。
+> 2. lr **过大**（5e-2）连早期好处都没有，直接 diverge（loss 飙到 31）。
+> 3. 所以"最佳 lr"不是固定值，而是**先高后低**——这就是 learning rate schedule 存在的理由。
+> 4. scientific notation：`5e-4` = `0.0005`（`e-4` = 小数点左移 4 位）；`e-` 后数字越大、数值越大，故 `1e-3 > 5e-4 > 1e-4`。
+
+### B. learning rate schedule（decaying schedule）
+
+> lr 在训练中**按规则变化**，而非固定。两段组成：**warmup**（lr 从~0 升到 peak，避免开局 overshoot）+ **decay**（peak 逐渐降到很小，精细收敛）。
+
+- **minimind 用的**（[trainer_utils.py:40](../../trainer/trainer_utils.py#L40)）：**cosine decay，无 warmup，floor=peak 的 10%**：
+  `lr*(0.1 + 0.45*(1+cos(π*step/total)))` → 从 5e-4 平滑降到 5e-5。
+- **modern models**：① 经典 = **warmup + cosine decay**（GPT-3/LLaMA）；② 新趋势 = **WSD**（Warmup-Stable-Decay，MiniCPM/DeepSeek，中间恒定 lr、最后才衰减，便于延长训练）；③ 历史：inverse sqrt（原始 Transformer）、step decay。
+- **为什么要 warmup**：开局权重随机、gradient 乱，直接上 peak lr 易 diverge（如 5e-2 那次）；warmup 给缓冲。minimind 模型小、lr 不极端，省了也能跑。
+
+### C. batch size
+
+> **纠正一个 misconception：larger batch ≠ better result。** 每步样本多 ≠ 学得更好，因为同时 **update 次数变少**，两者相抵。
+
+larger batch 真正改变的：
+- gradient 更平滑（噪声小，更 stable）
+- 每个 epoch 的 weight update 次数变少
+- hardware 利用率更高（但**只在 GPU 没吃满前**有效）
+- 允许配更大的 lr（√k scaling for AdamW）
+
+> **⚠️ 实测里的陷阱：按 step 比较不公平。**
+> | batch | loss @ step 1000 | step1000 时见过的数据量 |
+> |-------|------------------|----------------------|
+> | 32 | 5.25 | 32,000 samples |
+> | 128 | 4.50 | 128,000 |
+> | 512 | 4.28 | 512,000 |
+>
+> 看起来"batch 越大越好"，但 step 1000 时 batch=512 已经见了 **16× 更多数据**！不公平。**正确比较要按 samples-seen 或 wall-clock time，不能按 step。**
+
+> **"over large" 为什么 inefficient（你的疑问）：**
+> 1. **OOM**：超显存直接跑不起来（硬限制）。
+> 2. **过 GPU saturation 后无吞吐增益**：你的 nvidia-smi 在 batch=32 就已 97% util，再大 batch 不提升 samples/sec。
+> 3. **diminishing returns**：存在 **critical batch size**，超过它后 batch 翻倍≠收敛快一倍，花 2× compute 换 <2× 进展（浪费）；极大 batch 还可能落入 sharp minima、generalization 略差。
+> 4. 所以 batch size 有 **sweet spot**：够大(gradient 稳、硬件用满) 但别过大(OOM/浪费)，且要和 lr 一起调。
+
+---
+
 ## 今日待办状态
 
 - [x] 建立 `.venv` 虚拟环境（`~/Project/minimind/.venv`）
@@ -403,4 +542,6 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 - [x] 安装 PyTorch GPU 版（torch 2.11.0+cu128，Blackwell 必须 cu128）+ requirements.txt
 - [x] **成功跑通第一次预训练**（loss 从 ~7.3 正常下降）✅
 - [ ] 配置 VSCode 调试（已建 .vscode/launch.json，需装 Python 扩展，用 F5 而非 `python xxx.py`）
-- [ ] 跑完预训练 → 用 eval_llm.py 测试生成效果
+- [x] **跑完完整预训练（2轮，loss 7.28→1.98）** ✅ → out/pretrain_768.pth
+- [ ] 用 eval_llm.py 测试 base 模型续写效果（`python eval_llm.py --weight pretrain`）
+- [ ] 做 SFT 微调（train_full_sft.py + sft_t2t_mini.jsonl）→ 会对话的模型

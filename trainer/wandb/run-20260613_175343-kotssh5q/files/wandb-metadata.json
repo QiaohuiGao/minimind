@@ -1,0 +1,51 @@
+{
+  "os": "Linux-6.17.0-19-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.13.9",
+  "startedAt": "2026-06-13T21:53:43.450970Z",
+  "args": [
+    "--epochs",
+    "1",
+    "--max_steps",
+    "1000",
+    "--log_interval",
+    "100",
+    "--learning_rate",
+    "5e-3",
+    "--use_wandb"
+  ],
+  "program": "/home/qiaohui/Project/minimind/trainer/train_pretrain.py",
+  "codePath": "trainer/train_pretrain.py",
+  "codePathLocal": "train_pretrain.py",
+  "git": {
+    "remote": "https://github.com/QiaohuiGao/minimind.git",
+    "commit": "536f76ca42818f16d83f54c587f444f4206c0f81"
+  },
+  "email": "0721gqh@gmail.com",
+  "root": "/home/qiaohui/Project/minimind/trainer",
+  "host": "RTX-Pro-6000-Workstation",
+  "executable": "/home/qiaohui/Project/minimind/.venv/bin/python",
+  "cpu_count": 24,
+  "cpu_count_logical": 24,
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1006773899264",
+      "used": "193871732736"
+    }
+  },
+  "memory": {
+    "total": "100471738368"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+      "memoryTotal": "102641958912",
+      "cudaCores": 24064,
+      "architecture": "Blackwell",
+      "uuid": "GPU-e552bcb2-68d9-6186-cf78-a3e18fda64ea"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "ngmff6kfcmg4x3wbdes8pdxcnohah1ow"
+}

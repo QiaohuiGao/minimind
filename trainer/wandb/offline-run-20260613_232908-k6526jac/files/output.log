@@ -1,0 +1,35 @@
+Model Params: 164.66M
+Trainable Params: 164.655M
+Epoch:[1/1](100/9924), loss: 7.3960, logits_loss: 7.3960, aux_loss: 0.0000, lr: 0.00049989, epoch_time: 78.0min
+Traceback (most recent call last):
+  File "/home/qiaohui/Project/minimind/trainer/train_pretrain.py", line 274, in <module>
+    train_epoch(epoch, loader, len(loader), 0, wandb)                  # 正常从头训这一轮
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qiaohui/Project/minimind/trainer/train_pretrain.py", line 69, in train_epoch
+    scaler.scale(loss).backward()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qiaohui/Project/minimind/.venv/lib/python3.13/site-packages/torch/_tensor.py", line 631, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/qiaohui/Project/minimind/.venv/lib/python3.13/site-packages/torch/autograd/__init__.py", line 381, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/qiaohui/Project/minimind/.venv/lib/python3.13/site-packages/torch/autograd/graph.py", line 869, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+KeyboardInterrupt

@@ -1,0 +1,56 @@
+Model Params: 63.91M
+Trainable Params: 63.912M
+Epoch:[1/1](100/9924), loss: 7.2804, logits_loss: 7.2804, aux_loss: 0.0000, lr: 0.00049989, epoch_time: 35.0min
+Epoch:[1/1](200/9924), loss: 6.9012, logits_loss: 6.9012, aux_loss: 0.0000, lr: 0.00049955, epoch_time: 35.0min
+Epoch:[1/1](300/9924), loss: 6.5822, logits_loss: 6.5822, aux_loss: 0.0000, lr: 0.00049899, epoch_time: 35.0min
+Epoch:[1/1](400/9924), loss: 6.3195, logits_loss: 6.3195, aux_loss: 0.0000, lr: 0.00049820, epoch_time: 34.0min
+Epoch:[1/1](500/9924), loss: 5.9731, logits_loss: 5.9731, aux_loss: 0.0000, lr: 0.00049719, epoch_time: 34.0min
+Epoch:[1/1](600/9924), loss: 5.7797, logits_loss: 5.7797, aux_loss: 0.0000, lr: 0.00049595, epoch_time: 34.0min
+Epoch:[1/1](700/9924), loss: 5.5072, logits_loss: 5.5072, aux_loss: 0.0000, lr: 0.00049450, epoch_time: 34.0min
+Epoch:[1/1](800/9924), loss: 5.1891, logits_loss: 5.1891, aux_loss: 0.0000, lr: 0.00049282, epoch_time: 33.0min
+Epoch:[1/1](900/9924), loss: 4.9348, logits_loss: 4.9348, aux_loss: 0.0000, lr: 0.00049093, epoch_time: 33.0min
+Epoch:[1/1](1000/9924), loss: 4.5663, logits_loss: 4.5663, aux_loss: 0.0000, lr: 0.00048882, epoch_time: 33.0min
+Epoch:[1/1](1100/9924), loss: 4.4041, logits_loss: 4.4041, aux_loss: 0.0000, lr: 0.00048650, epoch_time: 32.0min
+Epoch:[1/1](1200/9924), loss: 4.1601, logits_loss: 4.1601, aux_loss: 0.0000, lr: 0.00048396, epoch_time: 32.0min
+Epoch:[1/1](1300/9924), loss: 3.9186, logits_loss: 3.9186, aux_loss: 0.0000, lr: 0.00048121, epoch_time: 32.0min
+Epoch:[1/1](1400/9924), loss: 3.7312, logits_loss: 3.7312, aux_loss: 0.0000, lr: 0.00047826, epoch_time: 31.0min
+Epoch:[1/1](1500/9924), loss: 3.6345, logits_loss: 3.6345, aux_loss: 0.0000, lr: 0.00047511, epoch_time: 31.0min
+Epoch:[1/1](1600/9924), loss: 3.5978, logits_loss: 3.5978, aux_loss: 0.0000, lr: 0.00047175, epoch_time: 31.0min
+Epoch:[1/1](1700/9924), loss: 3.4808, logits_loss: 3.4808, aux_loss: 0.0000, lr: 0.00046820, epoch_time: 30.0min
+Epoch:[1/1](1800/9924), loss: 3.4558, logits_loss: 3.4558, aux_loss: 0.0000, lr: 0.00046445, epoch_time: 30.0min
+Epoch:[1/1](1900/9924), loss: 3.3575, logits_loss: 3.3575, aux_loss: 0.0000, lr: 0.00046051, epoch_time: 30.0min
+Epoch:[1/1](2000/9924), loss: 3.2966, logits_loss: 3.2966, aux_loss: 0.0000, lr: 0.00045639, epoch_time: 29.0min
+Epoch:[1/1](2100/9924), loss: 3.2578, logits_loss: 3.2578, aux_loss: 0.0000, lr: 0.00045209, epoch_time: 29.0min
+Epoch:[1/1](2200/9924), loss: 3.1419, logits_loss: 3.1419, aux_loss: 0.0000, lr: 0.00044760, epoch_time: 29.0min
+Epoch:[1/1](2300/9924), loss: 3.1340, logits_loss: 3.1340, aux_loss: 0.0000, lr: 0.00044295, epoch_time: 28.0min
+Epoch:[1/1](2400/9924), loss: 3.0136, logits_loss: 3.0136, aux_loss: 0.0000, lr: 0.00043813, epoch_time: 28.0min
+Epoch:[1/1](2500/9924), loss: 2.8479, logits_loss: 2.8479, aux_loss: 0.0000, lr: 0.00043314, epoch_time: 27.0min
+Epoch:[1/1](2600/9924), loss: 2.9301, logits_loss: 2.9301, aux_loss: 0.0000, lr: 0.00042799, epoch_time: 27.0min
+Epoch:[1/1](2700/9924), loss: 2.8592, logits_loss: 2.8592, aux_loss: 0.0000, lr: 0.00042270, epoch_time: 27.0min
+Epoch:[1/1](2800/9924), loss: 2.9044, logits_loss: 2.9044, aux_loss: 0.0000, lr: 0.00041725, epoch_time: 26.0min
+Epoch:[1/1](2900/9924), loss: 2.7456, logits_loss: 2.7456, aux_loss: 0.0000, lr: 0.00041166, epoch_time: 26.0min
+Epoch:[1/1](3000/9924), loss: 2.7615, logits_loss: 2.7615, aux_loss: 0.0000, lr: 0.00040593, epoch_time: 26.0min
+Epoch:[1/1](3100/9924), loss: 2.6452, logits_loss: 2.6452, aux_loss: 0.0000, lr: 0.00040008, epoch_time: 25.0min
+Epoch:[1/1](3200/9924), loss: 2.7500, logits_loss: 2.7500, aux_loss: 0.0000, lr: 0.00039409, epoch_time: 25.0min
+Epoch:[1/1](3300/9924), loss: 2.7626, logits_loss: 2.7626, aux_loss: 0.0000, lr: 0.00038799, epoch_time: 24.0min
+Epoch:[1/1](3400/9924), loss: 2.6771, logits_loss: 2.6771, aux_loss: 0.0000, lr: 0.00038178, epoch_time: 24.0min
+Epoch:[1/1](3500/9924), loss: 2.6112, logits_loss: 2.6112, aux_loss: 0.0000, lr: 0.00037546, epoch_time: 24.0min
+Epoch:[1/1](3600/9924), loss: 2.6431, logits_loss: 2.6431, aux_loss: 0.0000, lr: 0.00036903, epoch_time: 23.0min
+Epoch:[1/1](3700/9924), loss: 2.6112, logits_loss: 2.6112, aux_loss: 0.0000, lr: 0.00036252, epoch_time: 23.0min
+Epoch:[1/1](3800/9924), loss: 2.6993, logits_loss: 2.6993, aux_loss: 0.0000, lr: 0.00035591, epoch_time: 23.0min
+Epoch:[1/1](3900/9924), loss: 2.5712, logits_loss: 2.5712, aux_loss: 0.0000, lr: 0.00034923, epoch_time: 22.0min
+Epoch:[1/1](4000/9924), loss: 2.5671, logits_loss: 2.5671, aux_loss: 0.0000, lr: 0.00034247, epoch_time: 22.0min
+Epoch:[1/1](4100/9924), loss: 2.6011, logits_loss: 2.6011, aux_loss: 0.0000, lr: 0.00033564, epoch_time: 21.0min
+Epoch:[1/1](4200/9924), loss: 2.4695, logits_loss: 2.4695, aux_loss: 0.0000, lr: 0.00032875, epoch_time: 21.0min
+Epoch:[1/1](4300/9924), loss: 2.4894, logits_loss: 2.4894, aux_loss: 0.0000, lr: 0.00032181, epoch_time: 21.0min
+Epoch:[1/1](4400/9924), loss: 2.6253, logits_loss: 2.6253, aux_loss: 0.0000, lr: 0.00031482, epoch_time: 20.0min
+Epoch:[1/1](4500/9924), loss: 2.4352, logits_loss: 2.4352, aux_loss: 0.0000, lr: 0.00030779, epoch_time: 20.0min
+Epoch:[1/1](4600/9924), loss: 2.4416, logits_loss: 2.4416, aux_loss: 0.0000, lr: 0.00030073, epoch_time: 20.0min
+Epoch:[1/1](4700/9924), loss: 2.4461, logits_loss: 2.4461, aux_loss: 0.0000, lr: 0.00029364, epoch_time: 19.0min
+Traceback (most recent call last):
+  File "/home/qiaohui/Project/minimind/trainer/train_pretrain.py", line 214, in <module>
+    train_epoch(epoch, loader, len(loader), 0, wandb)                  # 正常从头训这一轮
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qiaohui/Project/minimind/trainer/train_pretrain.py", line 52, in train_epoch
+    input_ids = input_ids.to(args.device)             # 把数据搬到 GPU。input_ids 形状[B, L]
+KeyboardInterrupt

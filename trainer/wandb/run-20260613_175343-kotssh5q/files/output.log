@@ -1,0 +1,13 @@
+Model Params: 63.91M
+Trainable Params: 63.912M
+Epoch:[1/1](100/9924), loss: 7.4833, logits_loss: 7.4833, aux_loss: 0.0000, lr: 0.00499887, epoch_time: 37.0min
+Epoch:[1/1](200/9924), loss: 7.1496, logits_loss: 7.1496, aux_loss: 0.0000, lr: 0.00499549, epoch_time: 36.0min
+Epoch:[1/1](300/9924), loss: 6.9361, logits_loss: 6.9361, aux_loss: 0.0000, lr: 0.00498986, epoch_time: 36.0min
+Epoch:[1/1](400/9924), loss: 6.8048, logits_loss: 6.8048, aux_loss: 0.0000, lr: 0.00498199, epoch_time: 36.0min
+Epoch:[1/1](500/9924), loss: 6.5808, logits_loss: 6.5808, aux_loss: 0.0000, lr: 0.00497187, epoch_time: 35.0min
+Epoch:[1/1](600/9924), loss: 6.4706, logits_loss: 6.4706, aux_loss: 0.0000, lr: 0.00495954, epoch_time: 35.0min
+Epoch:[1/1](700/9924), loss: 6.3843, logits_loss: 6.3843, aux_loss: 0.0000, lr: 0.00494498, epoch_time: 34.0min
+Epoch:[1/1](800/9924), loss: 6.2695, logits_loss: 6.2695, aux_loss: 0.0000, lr: 0.00492823, epoch_time: 34.0min
+Epoch:[1/1](900/9924), loss: 6.1667, logits_loss: 6.1667, aux_loss: 0.0000, lr: 0.00490930, epoch_time: 34.0min
+Epoch:[1/1](1000/9924), loss: 6.0155, logits_loss: 6.0155, aux_loss: 0.0000, lr: 0.00488820, epoch_time: 33.0min
+达到 max_steps=1000，自动停止本次训练

@@ -1,0 +1,149 @@
+_wandb:
+    value:
+        cli_version: 0.27.2
+        e:
+            mv325m4xa3w8o3u67nfgwvdg0cvgnrz9:
+                args:
+                    - --epochs
+                    - "1"
+                    - --max_steps
+                    - "1000"
+                    - --log_interval
+                    - "100"
+                    - --num_attention_heads
+                    - "4"
+                    - --num_key_value_heads
+                    - "4"
+                    - --use_wandb
+                    - --run_name
+                    - D1-nah4
+                codePath: trainer/train_pretrain.py
+                codePathLocal: train_pretrain.py
+                cpu_count: 24
+                cpu_count_logical: 24
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1006773899264"
+                        used: "196051255296"
+                email: 0721gqh@gmail.com
+                executable: /home/qiaohui/Project/minimind/.venv/bin/python
+                git:
+                    commit: 536f76ca42818f16d83f54c587f444f4206c0f81
+                    remote: https://github.com/QiaohuiGao/minimind.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                      uuid: GPU-e552bcb2-68d9-6186-cf78-a3e18fda64ea
+                host: RTX-Pro-6000-Workstation
+                memory:
+                    total: "100471738368"
+                os: Linux-6.17.0-19-generic-x86_64-with-glibc2.39
+                program: /home/qiaohui/Project/minimind/trainer/train_pretrain.py
+                python: CPython 3.13.9
+                root: /home/qiaohui/Project/minimind/trainer
+                startedAt: "2026-06-14T03:58:49.648009Z"
+                writerId: mv325m4xa3w8o3u67nfgwvdg0cvgnrz9
+        m: []
+        python_version: 3.13.9
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 51
+                - 53
+                - 71
+            "3":
+                - 13
+                - 16
+            "4": 3.13.9
+            "5": 0.27.2
+            "6": 4.57.6
+            "12": 0.27.2
+            "13": linux-x86_64
+accumulation_steps:
+    value: 8
+batch_size:
+    value: 128
+data_path:
+    value: ../dataset/pretrain_t2t_mini.jsonl
+device:
+    value: cuda:0
+dropout:
+    value: 0
+dtype:
+    value: bfloat16
+epochs:
+    value: 1
+from_resume:
+    value: 0
+from_weight:
+    value: none
+grad_clip:
+    value: 1
+head_dim:
+    value: 0
+hidden_size:
+    value: 768
+intermediate_size:
+    value: 0
+learning_rate:
+    value: 0.0005
+log_interval:
+    value: 100
+max_position_embeddings:
+    value: 3276
+max_seq_len:
+    value: 340
+max_steps:
+    value: 1000
+moe_intermediate_size:
+    value: 0
+num_attention_heads:
+    value: 4
+num_experts:
+    value: 4
+num_experts_per_tok:
+    value: 1
+num_hidden_layers:
+    value: 8
+num_key_value_heads:
+    value: 4
+num_workers:
+    value: 8
+rope_theta:
+    value: 1e+06
+router_aux_loss_coef:
+    value: 0.0005
+run_name:
+    value: D1-nah4
+save_dir:
+    value: ../out
+save_interval:
+    value: 1000
+save_weight:
+    value: pretrain
+use_compile:
+    value: 0
+use_moe:
+    value: 0
+use_wandb:
+    value: true
+wandb_project:
+    value: MiniMind-Pretrain
