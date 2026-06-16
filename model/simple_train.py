@@ -54,10 +54,10 @@ class SimpleDataset(Dataset):
         tokens = self.tokenizer(text, add_special_tokens=False,
                                 max_length=self.max_length - 2, truncation=True).input_ids
         tokens = [self.tokenizer.bos_token_id] + tokens + [self.tokenizer.eos_token_id]
-        # pad
-        pad_len = self.max_length - len(tokens)
-        input_ids = tokens + [self.tokenizer.pad_token_id] * pad_len
-        input_ids = torch.tensor(input_ids, dtype=torch.long)
+        # padding：将序列补齐到 max_length，使 batch 内所有样本等长
+        pad_len = self.max_length - len(tokens)          # 还差几个位置
+        input_ids = tokens + [self.tokenizer.pad_token_id] * pad_len  # 末尾填 pad token
+        input_ids = torch.tensor(input_ids, dtype=torch.long)         # 转成模型要求的 long tensor
         # labels: pad 位置设为 -100（不计算 loss）
         labels = input_ids.clone()
         labels[input_ids == self.tokenizer.pad_token_id] = -100

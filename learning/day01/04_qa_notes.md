@@ -506,6 +506,30 @@ Epoch 2: 2.10(起步) → 2.05(中段) → 1.98(最终)
 - **modern models**：① 经典 = **warmup + cosine decay**（GPT-3/LLaMA）；② 新趋势 = **WSD**（Warmup-Stable-Decay，MiniCPM/DeepSeek，中间恒定 lr、最后才衰减，便于延长训练）；③ 历史：inverse sqrt（原始 Transformer）、step decay。
 - **为什么要 warmup**：开局权重随机、gradient 乱，直接上 peak lr 易 diverge（如 5e-2 那次）；warmup 给缓冲。minimind 模型小、lr 不极端，省了也能跑。
 
+#### 如何实现 linear warmup + cosine decay
+
+minimind 现有 `get_lr`（[trainer_utils.py:40](../../trainer/trainer_utils.py#L40)）只有 cosine decay，加 warmup 只需改这一个函数：
+
+```python
+def get_lr(current_step, total_steps, lr, warmup_steps=0):
+    if warmup_steps > 0 and current_step < warmup_steps:
+        return lr * current_step / warmup_steps      # linear warmup: 0 → peak
+    decay_step = current_step - warmup_steps
+    decay_total = total_steps - warmup_steps
+    return lr * (0.1 + 0.45 * (1 + math.cos(math.pi * decay_step / decay_total)))
+```
+
+调用处透传参数：
+```python
+lr_now = get_lr(step, total_steps, args.lr, warmup_steps=200)
+optimizer.param_groups[0]['lr'] = lr_now
+```
+
+**三个关键点：**
+- **warmup 步数**：通常取 total steps 的 1~5%，或固定 100~500 步。跑 1000 步对照实验时设 50~100 即可。
+- **warmup 起点**：`lr * step / warmup_steps`，step=0 时 lr=0，step=warmup_steps 时恰好到 peak，完全线性。
+- **minimind 为何省了也没事**：模型小（63M）、lr 不极端（5e-4），cosine decay 开头本身 lr 就是 peak 且下降极缓。若把 lr 推到 1e-3 以上，加 warmup 会更稳定。
+
 ### C. batch size
 
 > **纠正一个 misconception：larger batch ≠ better result。** 每步样本多 ≠ 学得更好，因为同时 **update 次数变少**，两者相抵。
@@ -515,6 +539,14 @@ larger batch 真正改变的：
 - 每个 epoch 的 weight update 次数变少
 - hardware 利用率更高（但**只在 GPU 没吃满前**有效）
 - 允许配更大的 lr（√k scaling for AdamW）
+
+  > **√k scaling 是什么：** batch size 扩大 k 倍时，建议同步把 lr 乘以 √k。
+  >
+  > 原理：gradient 是对一个 batch 里所有样本的平均，batch 越大，平均越精准（噪声越小）。数学上，gradient 的 standard deviation ∝ 1/√B（B = batch size）。batch 大了 → gradient 噪声小了 → 每步"指向"更准确 → 可以迈更大的步（更大的 lr）而不 overshoot。
+  >
+  > 为什么是 √k 而不是直接 ×k：SGD 理论上可以线性 scale（×k），但 Adam/AdamW 内部已经用二阶矩（gradient 的方差估计）做了 normalization，自动抵消了一部分 batch 大小的影响，所以 scaling 不需要那么激进，经验上 √k 更安全。
+  >
+  > **实际用法**：minimind 默认 batch=32、lr=5e-4；若把 batch 改成 128（×4），可尝试 lr=5e-4 × √4 = **1e-3**。不是硬规则，只是起点。
 
 > **⚠️ 实测里的陷阱：按 step 比较不公平。**
 > | batch | loss @ step 1000 | step1000 时见过的数据量 |
@@ -526,10 +558,205 @@ larger batch 真正改变的：
 > 看起来"batch 越大越好"，但 step 1000 时 batch=512 已经见了 **16× 更多数据**！不公平。**正确比较要按 samples-seen 或 wall-clock time，不能按 step。**
 
 > **"over large" 为什么 inefficient（你的疑问）：**
-> 1. **OOM**：超显存直接跑不起来（硬限制）。
+> 1. **OOM（Out of Memory）**：GPU 的 VRAM 是固定的（你的卡 96GB）。训练时显存同时放着：model weights + gradients + optimizer states（AdamW 额外存 m/v 两份，约 2× weights 大小）+ activations（forward pass 的中间结果，大小 ∝ batch size）。batch 太大 → activations 撑爆 VRAM → CUDA 直接报 `RuntimeError: CUDA out of memory` 崩掉，没有"慢一点跑"的余地，是硬限制。
 > 2. **过 GPU saturation 后无吞吐增益**：你的 nvidia-smi 在 batch=32 就已 97% util，再大 batch 不提升 samples/sec。
-> 3. **diminishing returns**：存在 **critical batch size**，超过它后 batch 翻倍≠收敛快一倍，花 2× compute 换 <2× 进展（浪费）；极大 batch 还可能落入 sharp minima、generalization 略差。
+> 3. **diminishing returns**：存在 **critical batch size**，超过它后 batch 翻倍≠收敛快一倍，花 2× compute 换 <2× 进展（浪费）；极大 batch 还可能落入 **sharp minima**，generalization 略差。
+>
+>    > **Sharp minima vs generalization：**
+>    > Loss landscape 是 loss 对所有 weight 的高维"地形图"。
+>    > - **Sharp minimum（尖谷）**：像峡谷，周围 loss 壁很陡，weight 稍微一变 loss 就飙升。
+>    > - **Flat minimum（宽谷）**：像盆地，周围很平缓，weight 有小扰动 loss 也基本不变。
+>    >
+>    > **为什么 flat 比 sharp 的 generalization 好：** 训练集 ≠ 测试集，两者有细微的分布差异。Sharp minimum 对这种 shift 敏感——在训练集完美拟合的权重，稍有偏移就在测试集 loss 暴增，即 overfitting。Flat minimum 对扰动不敏感，说明模型学到的是更通用的规律，测试集表现更稳定，这就是 **generalization（泛化）好**。
+>    >
+>    > **为什么大 batch 容易落入 sharp minima：** 大 batch 的 gradient 噪声小、方向精准，优化路径倾向于直奔最近的 local minimum，而最近的不一定是最宽的。小 batch 有 gradient 噪声，相当于在 landscape 上"随机抖动"，反而更容易从 sharp valley 逃出来、最终落进 flat valley。这是大 batch 训练已知的 tradeoff（不是致命缺点，但要知道）。
+>
 > 4. 所以 batch size 有 **sweet spot**：够大(gradient 稳、硬件用满) 但别过大(OOM/浪费)，且要和 lr 一起调。
+
+### D. Optimizer：Adam / AdamW
+
+**Adam（Adaptive Moment Estimation）** 是目前最主流的 optimizer。
+
+最简单的 optimizer SGD 每步只做：`w = w - lr × gradient`，所有参数用同一个 lr，但不同参数的 gradient 大小差异极大 → 有的 overshoot，有的走不动。
+
+Adam 给每个参数自动计算"专属 lr"，靠两个额外统计量：
+- **m（一阶矩）**：gradient 的滑动平均，记住最近的方向，减少单步噪声（momentum）。
+- **v（二阶矩）**：gradient **平方**的滑动平均，衡量这个参数的 gradient 有多大、多剧烈。
+
+实际步长 = `lr × m / √v`。gradient 一直很大的参数（v 大）→ 步长被压小；gradient 一直很小的参数（v 小）→ 步长被放大。自动适应，不需要手动给每个参数调 lr。
+
+**AdamW = Adam + 正确的 Weight Decay**
+
+原版 Adam 把 L2 惩罚混进了 gradient，然后被 Adam 的 v 自适应机制稀释，导致 weight decay 效果失真。AdamW 把 weight decay 从 gradient 里剥离出来，每步单独施加：
+
+```
+w = w - lr × (Adam计算出的gradient方向)   ← Adam 负责
+w = w × (1 - lr × λ)                      ← weight decay 单独做，直接缩 w
+```
+
+**weight decay 作用在 weights 本身，不是作用在 learning rate 上。** 两步完全独立。
+
+> **GPT、LLaMA、minimind 都用 AdamW。**
+
+### E. Regularization vs Normalization（常见混淆）
+
+两个完全不同的概念，名字像但目的和做法都不一样：
+
+| | 作用于 | 解决什么问题 |
+|--|--|--|
+| **Regularization（正则化）** | **weights（模型参数）** | 防 overfitting，让权重别太大 |
+| **Normalization（归一化）** | **activations（中间层的值）** | 稳定训练，让数值分布不爆炸/消失 |
+
+**Regularization** 在 loss 里加惩罚项，迫使权重变小：
+- **L2**（Weight Decay）：惩罚项 = `λ × Σ(w²)`，权重被拉小但不为 0，更平滑。AdamW 的 weight decay 就是 L2。
+- **L1**：惩罚项 = `λ × Σ|w|`，会把不重要的权重直接推到精确的 0（**稀疏性**），相当于自动删掉无用参数，常用于传统 ML。
+
+**Normalization** 对激活值做缩放，维持数值稳定：
+- **LayerNorm**：对单个样本的每层激活值归一化（均值→0，方差→1），Transformer 标配。
+- **RMSNorm**：LayerNorm 的简化版，去掉均值那步，只除以 RMS（root mean square）——**minimind 用的就是这个**。
+- **BatchNorm**：对一个 batch 内的激活值归一化，CV 常用，LLM 少用。
+
+> 类比：regularization 是"考试前别死背答案"（防过拟合），normalization 是"保持头脑清醒、情绪稳定"（训练稳定）。
+
+### F. hidden_size（模型宽度）与 compute budget
+
+**直觉上 hidden_size 越大越好，但有前提：数据量和训练步数要跟上。**
+
+| hidden_size | 参数量 | 需要多少数据/步才能"发挥出来" |
+|---|---|---|
+| 256（C1） | 8.33M | 少，50k 条 + 390 步就够学到东西 |
+| 768（C2，默认） | 63M | 中，勉强够用 |
+| 1024（C3） | 112M | 多，50k 条完全喂不饱 |
+
+大模型不是"学不会"，而是参数太多，需要**更多数据和更多步数**才能充分训练。用 50k 条数据只跑 1 epoch，相当于让一个大容器只装了一点点水——C3 大部分参数几乎没被有效训练到，loss 反而高于 C1。这叫 **underfitting（欠拟合）**——不是模型太弱，而是**训练量不够**。
+
+反过来，hidden_size 太小 → 模型容量不足 → 即使数据再多也学不到复杂语言规律 → loss 降到某个 ceiling 就降不动了，这叫 **capacity bottleneck**。
+
+> **一句话：** hidden_size 越大越好——前提是数据量和训练步数要跟上。数据少、步数少时，小模型反而赢，因为"容量小、容易填满"。这就是为什么小实验用小模型，正式训练才上大模型。
+
+### G. 超参（Hyperparameter）是什么
+
+> **超参 = 训练前你手动设定、训练过程中不被 gradient 更新的参数。**
+
+| | 普通参数（parameters） | 超参（hyperparameters） |
+|---|---|---|
+| 例子 | model 里的 weights/biases | lr、batch_size、λ、hidden_size |
+| 谁来更新 | optimizer 根据 gradient 自动更新 | 你手动设定，训练中不变 |
+| 存在哪 | model.state_dict() | argparse / 代码里的固定值 |
+
+lr、batch_size、hidden_size、num_layers、weight_decay、dropout、warmup_steps……全都是超参。
+
+### H. AdamW 的完整参数
+
+```python
+torch.optim.AdamW(
+    params,             # 要优化的 model weights
+    lr=1e-3,            # 学习率（会被 schedule 手动改）
+    betas=(0.9, 0.999), # (β1, β2)：m 和 v 的滑动平均衰减系数
+    eps=1e-8,           # 防除零的极小值
+    weight_decay=0.01   # λ，weight decay 系数，全程固定
+)
+```
+
+**betas 解释：**
+- **β1=0.9**：控制 m（一阶矩，gradient 方向）的"记忆长度"。当前 gradient 占 10%，历史占 90%。
+- **β2=0.999**：控制 v（二阶矩，gradient 大小）的"记忆长度"。历史更长，变化更慢。
+
+betas 和 eps 几乎所有人都用默认值，不需要调。**实际需要调的只有 `lr` 和 `weight_decay`**，其余基本不动。
+
+weight decay（λ）全程固定不变；lr 每步通过 `get_lr()` 重新算后手动塞进 `optimizer.param_groups[0]['lr']`。
+
+### I. num_attention_heads 的 trade-off（组 D 实验观察）
+
+head_dim（每个 head 的维度）= hidden_size ÷ num_heads：
+
+| heads | head_dim（768÷n） |
+|---|---|
+| 4 | 192 |
+| 8（默认） | 96 |
+| 16 | 48 |
+| 32 | 24 |
+
+**为什么 heads 少，前期 loss 降得更快：**
+heads 少 → head_dim 大 → 每个 head 能表达更丰富的信息 → 前期收敛快。
+
+**为什么 4 heads 最终被 8 heads 反超：**
+multi-head attention 的核心价值是**并行关注不同方面**——一个 head 看语法关系，另一个看语义，另一个看位置距离……heads 越多，模型能同时关注的"视角"越多。4 heads 每个 head 虽然"看得深"，但只有 4 个视角，多样性不够，最终表达能力有上限。
+
+**为什么更多 heads（16、32）更差：**
+head_dim 太小（48、24）→ 每个 head 维度太压缩，连基本的 Q/K 相似度都算不准 → 视角多但每个视角"近视"，反而没用。
+
+> **一句话：** heads 的选择是**每个 head 的表达深度（head_dim）** vs **并行视角的多样性（head 数量）**之间的 trade-off。太少 → 多样性不足；太多 → 每个 head 太浅。768 维模型的经验甜点是 8~12 heads。
+
+### J. MQA / GQA / MHA 与 num_key_value_heads（组 E 实验）
+
+标准 attention 计算：`attention_output = softmax(Q × Kᵀ / √d) × V`
+
+- **Q**（Query）：当前 token 在"问"什么
+- **K**（Key）：每个位置的 token "是什么"
+- **V**（Value）：每个位置的 token "能提供什么信息"
+
+K 和 V 都来自输入序列本身，描述的是"上下文里有什么内容"。三种方案区别只在 KV head 数量：
+
+| 名称 | KV heads | 含义 |
+|---|---|---|
+| **MHA**（Multi-Head Attention） | = Q heads（8） | 每个 Q head 有自己专属的 KV |
+| **GQA**（Grouped Query Attention） | 介于中间（2、4） | 几个 Q head 共享一对 KV |
+| **MQA**（Multi-Query Attention） | 1 | 所有 Q heads 共用同一对 KV |
+
+**为什么 Q 不同，KV 却可以共享：**
+多个 Q heads 共用同一套 KV，但每个 Q head 的 **Q 向量不同** → attention weights（softmax 分数）不同 → 从同一份 V 里提取出的**加权组合不同**。多样性来自 Q 的不同，不需要 KV 也各不相同。
+
+类比：同一个图书馆（K/V），不同读者（Q heads）带着不同问题来检索——书还是那些书，但每个人关注的章节不一样。
+
+**KV 减少会损失什么：**
+MHA 里每个 head 有独立的 KV 投影矩阵，可以把输入映射到不同语义子空间。共享后这部分多样性略有损失——MQA（nkv=1）质量略降，GQA（nkv=4）几乎无损。
+
+**为什么要减少 KV heads：**
+KV 在推理时要存进 KV cache（显存），nkv 越少 → cache 越小 → **推理更省显存、更快**。LLaMA 3、minimind 默认都用 GQA（nkv=4）作为折中。
+
+> **一句话：** Q 的多样性保证每个 head 关注不同的东西，KV 只是"被查询的内容"，共享影响不大。损失的只是 KV 投影空间的多样性，这部分对质量影响很小但对显存节省极大。
+
+### K. Head 的真正含义
+
+**Head = 一个独立的 attention 视角**，有自己专属的 Q/K/V 投影矩阵，学会关注输入的某一类关系。
+
+单个 attention head 在做什么：
+```
+Q = input × W_Q   # "我在找什么"
+K = input × W_K   # "我能提供什么索引"
+V = input × W_V   # "我能提供什么内容"
+```
+用 Q 去和所有位置的 K 打分，分数高的位置从 V 里取更多信息。**一个 head 只能学会一种"找法"**——一套 W_Q/W_K/W_V 决定了它只能关注一类关系。
+
+**多个 heads 的意义：**
+每个 head 有自己独立的 W_Q/W_K/W_V，通过训练自然分化出不同专长：
+- head 1 可能学会关注**语法关系**（主语→动词）
+- head 2 可能学会关注**指代关系**（"他"→"张三"）
+- head 3 可能学会关注**位置距离**（相邻 token）
+- head 4 可能学会关注**语义相似性**
+
+这不是人为设定的，是训练过程中**自动涌现**的分工。所有 heads 的输出最后 concat，再投影回 hidden_size，模型同时获得多个视角的信息。
+
+> **一句话：** head 是 attention 的一个独立"视角单元"，有自己的投影矩阵，学会关注输入中某一类关系。多 heads = 多视角并行，最后汇总。
+
+### L. head_dim 的 trade-off（组 F 实验观察）
+
+head_dim 默认 = `hidden_size ÷ num_heads = 768 ÷ 8 = 96`。
+
+**head_dim 越小的影响：**
+每个 head 把信息压缩进更少的维度 → attention score（Q·Kᵀ）计算更"粗糙" → 对不同 batch 的数据更敏感，loss 曲线更抖。
+
+**预期趋势：**
+
+| head_dim | 预期表现 | 原因 |
+|---|---|---|
+| 48、64（太小） | 偏差且抖动大 | 压缩过度，attention 精度低 |
+| 96（默认） | 最稳，甜点 | 与 hidden_size=768、8 heads 自然匹配 |
+| 128、256（太大） | 前期看起来好，短实验欠拟合 | 参数多、训练量不够，同 C 组大模型 |
+
+**关于"64 高于 48"这类短实验异常：**
+1000 步内两条曲线差距很小时，**很可能是噪声**，不代表真实性能差距。此外，head_dim=48 参数比 64 少，在短实验里可能因"容量小、容易填满"而暂时领先——和 C 组小模型赢大模型是同一个道理。不要过度解读单个数据点，看**整体趋势**：离默认值（96）越远，表现越差。
 
 ---
 
