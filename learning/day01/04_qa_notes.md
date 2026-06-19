@@ -760,6 +760,98 @@ head_dim 默认 = `hidden_size ÷ num_heads = 768 ÷ 8 = 96`。
 
 ---
 
+## Q22. loss.backward() 为什么能直接调用？PyTorch autograd 机制
+
+> **笔记：loss 不是普通数字，是一个带"计算历史"的 tensor。**
+>
+> **loss 的 shape 是标量（scalar）**，就是一个数，比如 `tensor(8.3412)`。因为 `F.cross_entropy` 对所有位置求平均，最终输出一个数。backward 的起点必须是标量——如果 loss 是向量，就没法定义"该往哪个方向调权重"。
+>
+> **为什么能直接 `.backward()`：**
+> PyTorch 的 autograd 在每一步计算时**偷偷记录计算图**：
+> ```
+> embed(input_ids)                    ← 记录
+>     ↓
+> blocks(x)                           ← 记录
+>     ↓
+> lm_head(x)                          ← 记录
+>     ↓
+> cross_entropy(logits, labels)       ← 记录
+>     ↓
+> loss                                ← 身上挂着整条计算链路（.grad_fn 属性）
+> ```
+>
+> `loss.grad_fn` 记录了"我是怎么算出来的"：
+> ```python
+> print(loss.grad_fn)
+> # <NllLossBackward0>  ← 知道自己来自 cross_entropy
+> #   ← 来自 lm_head (Linear)
+> #     ← 来自 blocks
+> #       ← 来自 embed
+> ```
+>
+> 调用 `loss.backward()` 时，PyTorch 沿着这条链**从后往前**，用链式法则（chain rule）算出每个权重的梯度，存到 `weight.grad` 里。
+>
+> **核心理解：** 不是 loss "特殊"——**任何经过计算得到的 scalar tensor 都能调 `.backward()`**。这就是 PyTorch 的核心设计：你只管写前向计算，反向传播自动帮你做。
+
+---
+
+## Q23. Embedding 层的作用、影响性能的因素、SOTA 模型的配置
+
+> **笔记：Embedding = 查表，把离散的 token ID 映射到连续的语义向量空间。**
+>
+> ```python
+> self.embed_tokens = nn.Embedding(vocab_size, hidden_size)
+> # token ID 47 ("好") → 查表 → [0.12, -0.53, 0.81, ..., 0.03]  # hidden_size 维向量
+> ```
+>
+> 训练过程中，语义相近的词会被推到向量空间中相近的位置（如"猫"和"狗"的向量距离 < "猫"和"经济"）。
+>
+> **影响性能的两个维度：**
+>
+> **1. hidden_size（向量维度）= 模型能编码多少"语义特征"：**
+>
+> | 模型 | hidden_size | 效果 |
+> |---|---|---|
+> | simple_train | 256 | 很弱，能学基本模式 |
+> | minimind | 768 | 小模型，能生成简单中文 |
+> | LLaMA-3 8B | 4096 | 强，能做复杂推理 |
+> | LLaMA-3 70B | 8192 | 非常强 |
+>
+> **2. vocab_size（词表大小）= Embedding 矩阵的行数：**
+>
+> | 模型 | vocab_size | 特点 |
+> |---|---|---|
+> | minimind | 6,400 | 极小，中文覆盖有限 |
+> | LLaMA 3 | 128,000 | 多语言，中文效率高 |
+> | Qwen 2.5 | 151,936 | 中英文优化 |
+>
+> 词表大 → 常见词更可能是 1 个 token → 同样长度装更多信息 → 效率高。但词表大 → 参数更多。
+>
+> **所有 SOTA 模型的 Embedding 实现都一样——就是 `nn.Embedding` 查表。** 差异在配置（维度、词表大小），不在算法。常见技巧：
+> - **Weight Tying**（LLaMA, Qwen, minimind）：Embedding 和 LM Head 共享权重，省参数
+> - **位置信息不在 Embedding 加**：现代模型都用 RoPE（在 Attention 里加），早期模型（BERT, GPT-1）才有 Position Embedding
+>
+> **SOTA 模型层数与配置对比：**
+>
+> | 模型 | 参数量 | num_layers | hidden_size | num_heads |
+> |---|---|---|---|---|
+> | minimind | 26M | 8 | 768 | 16 |
+> | LLaMA-3 8B | 8B | 32 | 4096 | 32 |
+> | LLaMA-3 70B | 70B | 80 | 8192 | 64 |
+> | LLaMA-3 405B | 405B | 126 | 16384 | 128 |
+> | Qwen-2.5 7B | 7B | 28 | 3584 | 28 |
+> | Qwen-2.5 72B | 72B | 80 | 8192 | 64 |
+> | DeepSeek-V3 | 671B (MoE) | 61 | 7168 | 128 |
+> | GPT-3 | 175B | 96 | 12288 | 96 |
+>
+> **规律：**
+> - 参数量 ∝ num_layers × hidden_size²，变大靠**加深 + 加宽同时放大**
+> - 7-8B 模型一般 28-32 层，70B 一般 80 层，400B+ 约 100-126 层
+> - num_heads 通常 = hidden_size / 128（即 head_dim 固定为 128）
+> - simple_train.py 的 4 层 256 维是这些模型的"迷你缩影"，结构完全一样——放大配置就能得到 LLaMA
+
+---
+
 ## 今日待办状态
 
 - [x] 建立 `.venv` 虚拟环境（`~/Project/minimind/.venv`）
