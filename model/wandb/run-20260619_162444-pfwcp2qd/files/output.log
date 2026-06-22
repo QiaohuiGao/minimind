@@ -1,0 +1,758 @@
+Epoch 1/1 | Step 0/37711 | Loss: 8.8244 | Avg: 8.8244
+Epoch 1/1 |step 0/37711 | Loss: 8.8244 | Avg: 8.8244 | Val: 8.6731
+Epoch 1/1 | Step 100/37711 | Loss: 6.7761 | Avg: 7.2122
+Epoch 1/1 | Step 100/37711 | Loss: 6.7761 | Avg: 7.2122
+Epoch 1/1 | Step 200/37711 | Loss: 6.0187 | Avg: 6.7814
+Epoch 1/1 | Step 200/37711 | Loss: 6.0187 | Avg: 6.7814
+Epoch 1/1 | Step 300/37711 | Loss: 5.6077 | Avg: 6.4909
+Epoch 1/1 | Step 300/37711 | Loss: 5.6077 | Avg: 6.4909
+Epoch 1/1 | Step 400/37711 | Loss: 5.5125 | Avg: 6.2626
+Epoch 1/1 | Step 400/37711 | Loss: 5.5125 | Avg: 6.2626
+Epoch 1/1 | Step 500/37711 | Loss: 4.9994 | Avg: 6.0657
+Epoch 1/1 |step 500/37711 | Loss: 4.9994 | Avg: 6.0657 | Val: 5.1156
+Epoch 1/1 | Step 600/37711 | Loss: 5.0943 | Avg: 5.8992
+Epoch 1/1 | Step 600/37711 | Loss: 5.0943 | Avg: 5.8992
+Epoch 1/1 | Step 700/37711 | Loss: 4.7392 | Avg: 5.7543
+Epoch 1/1 | Step 700/37711 | Loss: 4.7392 | Avg: 5.7543
+Epoch 1/1 | Step 800/37711 | Loss: 4.6438 | Avg: 5.6250
+Epoch 1/1 | Step 800/37711 | Loss: 4.6438 | Avg: 5.6250
+Epoch 1/1 | Step 900/37711 | Loss: 4.2652 | Avg: 5.5105
+Epoch 1/1 | Step 900/37711 | Loss: 4.2652 | Avg: 5.5105
+Epoch 1/1 | Step 1000/37711 | Loss: 4.3176 | Avg: 5.4080
+Epoch 1/1 |step 1000/37711 | Loss: 4.3176 | Avg: 5.4080 | Val: 4.3323
+Epoch 1/1 | Step 1100/37711 | Loss: 4.1652 | Avg: 5.3138
+Epoch 1/1 | Step 1100/37711 | Loss: 4.1652 | Avg: 5.3138
+Epoch 1/1 | Step 1200/37711 | Loss: 4.0594 | Avg: 5.2285
+Epoch 1/1 | Step 1200/37711 | Loss: 4.0594 | Avg: 5.2285
+Epoch 1/1 | Step 1300/37711 | Loss: 4.1909 | Avg: 5.1511
+Epoch 1/1 | Step 1300/37711 | Loss: 4.1909 | Avg: 5.1511
+Epoch 1/1 | Step 1400/37711 | Loss: 4.1663 | Avg: 5.0768
+Epoch 1/1 | Step 1400/37711 | Loss: 4.1663 | Avg: 5.0768
+Epoch 1/1 | Step 1500/37711 | Loss: 4.0357 | Avg: 5.0058
+Epoch 1/1 |step 1500/37711 | Loss: 4.0357 | Avg: 5.0058 | Val: 3.8870
+Epoch 1/1 | Step 1600/37711 | Loss: 3.8734 | Avg: 4.9410
+Epoch 1/1 | Step 1600/37711 | Loss: 3.8734 | Avg: 4.9410
+Epoch 1/1 | Step 1700/37711 | Loss: 4.0196 | Avg: 4.8802
+Epoch 1/1 | Step 1700/37711 | Loss: 4.0196 | Avg: 4.8802
+Epoch 1/1 | Step 1800/37711 | Loss: 3.7619 | Avg: 4.8242
+Epoch 1/1 | Step 1800/37711 | Loss: 3.7619 | Avg: 4.8242
+Epoch 1/1 | Step 1900/37711 | Loss: 3.8426 | Avg: 4.7697
+Epoch 1/1 | Step 1900/37711 | Loss: 3.8426 | Avg: 4.7697
+Epoch 1/1 | Step 2000/37711 | Loss: 3.6322 | Avg: 4.7184
+Epoch 1/1 |step 2000/37711 | Loss: 3.6322 | Avg: 4.7184 | Val: 3.5770
+Epoch 1/1 | Step 2100/37711 | Loss: 3.5936 | Avg: 4.6700
+Epoch 1/1 | Step 2100/37711 | Loss: 3.5936 | Avg: 4.6700
+Epoch 1/1 | Step 2200/37711 | Loss: 3.6019 | Avg: 4.6240
+Epoch 1/1 | Step 2200/37711 | Loss: 3.6019 | Avg: 4.6240
+Epoch 1/1 | Step 2300/37711 | Loss: 3.6966 | Avg: 4.5808
+Epoch 1/1 | Step 2300/37711 | Loss: 3.6966 | Avg: 4.5808
+Epoch 1/1 | Step 2400/37711 | Loss: 3.4428 | Avg: 4.5380
+Epoch 1/1 | Step 2400/37711 | Loss: 3.4428 | Avg: 4.5380
+Epoch 1/1 | Step 2500/37711 | Loss: 3.4620 | Avg: 4.4979
+Epoch 1/1 |step 2500/37711 | Loss: 3.4620 | Avg: 4.4979 | Val: 3.3801
+Epoch 1/1 | Step 2600/37711 | Loss: 3.5507 | Avg: 4.4594
+Epoch 1/1 | Step 2600/37711 | Loss: 3.5507 | Avg: 4.4594
+Epoch 1/1 | Step 2700/37711 | Loss: 3.4012 | Avg: 4.4242
+Epoch 1/1 | Step 2700/37711 | Loss: 3.4012 | Avg: 4.4242
+Epoch 1/1 | Step 2800/37711 | Loss: 3.4253 | Avg: 4.3903
+Epoch 1/1 | Step 2800/37711 | Loss: 3.4253 | Avg: 4.3903
+Epoch 1/1 | Step 2900/37711 | Loss: 3.7136 | Avg: 4.3576
+Epoch 1/1 | Step 2900/37711 | Loss: 3.7136 | Avg: 4.3576
+Epoch 1/1 | Step 3000/37711 | Loss: 3.5183 | Avg: 4.3266
+Epoch 1/1 |step 3000/37711 | Loss: 3.5183 | Avg: 4.3266 | Val: 3.2585
+Epoch 1/1 | Step 3100/37711 | Loss: 3.3410 | Avg: 4.2966
+Epoch 1/1 | Step 3100/37711 | Loss: 3.3410 | Avg: 4.2966
+Epoch 1/1 | Step 3200/37711 | Loss: 3.4095 | Avg: 4.2676
+Epoch 1/1 | Step 3200/37711 | Loss: 3.4095 | Avg: 4.2676
+Epoch 1/1 | Step 3300/37711 | Loss: 3.3167 | Avg: 4.2402
+Epoch 1/1 | Step 3300/37711 | Loss: 3.3167 | Avg: 4.2402
+Epoch 1/1 | Step 3400/37711 | Loss: 3.2172 | Avg: 4.2138
+Epoch 1/1 | Step 3400/37711 | Loss: 3.2172 | Avg: 4.2138
+Epoch 1/1 | Step 3500/37711 | Loss: 3.1596 | Avg: 4.1881
+Epoch 1/1 |step 3500/37711 | Loss: 3.1596 | Avg: 4.1881 | Val: 3.1795
+Epoch 1/1 | Step 3600/37711 | Loss: 3.3042 | Avg: 4.1636
+Epoch 1/1 | Step 3600/37711 | Loss: 3.3042 | Avg: 4.1636
+Epoch 1/1 | Step 3700/37711 | Loss: 3.2440 | Avg: 4.1403
+Epoch 1/1 | Step 3700/37711 | Loss: 3.2440 | Avg: 4.1403
+Epoch 1/1 | Step 3800/37711 | Loss: 3.4142 | Avg: 4.1177
+Epoch 1/1 | Step 3800/37711 | Loss: 3.4142 | Avg: 4.1177
+Epoch 1/1 | Step 3900/37711 | Loss: 3.3461 | Avg: 4.0957
+Epoch 1/1 | Step 3900/37711 | Loss: 3.3461 | Avg: 4.0957
+Epoch 1/1 | Step 4000/37711 | Loss: 3.3812 | Avg: 4.0751
+Epoch 1/1 |step 4000/37711 | Loss: 3.3812 | Avg: 4.0751 | Val: 3.1137
+Epoch 1/1 | Step 4100/37711 | Loss: 3.1684 | Avg: 4.0545
+Epoch 1/1 | Step 4100/37711 | Loss: 3.1684 | Avg: 4.0545
+Epoch 1/1 | Step 4200/37711 | Loss: 3.5243 | Avg: 4.0348
+Epoch 1/1 | Step 4200/37711 | Loss: 3.5243 | Avg: 4.0348
+Epoch 1/1 | Step 4300/37711 | Loss: 3.1344 | Avg: 4.0157
+Epoch 1/1 | Step 4300/37711 | Loss: 3.1344 | Avg: 4.0157
+Epoch 1/1 | Step 4400/37711 | Loss: 3.1872 | Avg: 3.9975
+Epoch 1/1 | Step 4400/37711 | Loss: 3.1872 | Avg: 3.9975
+Epoch 1/1 | Step 4500/37711 | Loss: 3.2410 | Avg: 3.9793
+Epoch 1/1 |step 4500/37711 | Loss: 3.2410 | Avg: 3.9793 | Val: 3.0598
+Epoch 1/1 | Step 4600/37711 | Loss: 3.3815 | Avg: 3.9623
+Epoch 1/1 | Step 4600/37711 | Loss: 3.3815 | Avg: 3.9623
+Epoch 1/1 | Step 4700/37711 | Loss: 3.2699 | Avg: 3.9458
+Epoch 1/1 | Step 4700/37711 | Loss: 3.2699 | Avg: 3.9458
+Epoch 1/1 | Step 4800/37711 | Loss: 3.1580 | Avg: 3.9291
+Epoch 1/1 | Step 4800/37711 | Loss: 3.1580 | Avg: 3.9291
+Epoch 1/1 | Step 4900/37711 | Loss: 3.2047 | Avg: 3.9133
+Epoch 1/1 | Step 4900/37711 | Loss: 3.2047 | Avg: 3.9133
+Epoch 1/1 | Step 5000/37711 | Loss: 3.3854 | Avg: 3.8985
+Epoch 1/1 |step 5000/37711 | Loss: 3.3854 | Avg: 3.8985 | Val: 3.0177
+Epoch 1/1 | Step 5100/37711 | Loss: 3.2606 | Avg: 3.8834
+Epoch 1/1 | Step 5100/37711 | Loss: 3.2606 | Avg: 3.8834
+Epoch 1/1 | Step 5200/37711 | Loss: 3.1512 | Avg: 3.8690
+Epoch 1/1 | Step 5200/37711 | Loss: 3.1512 | Avg: 3.8690
+Epoch 1/1 | Step 5300/37711 | Loss: 3.4117 | Avg: 3.8551
+Epoch 1/1 | Step 5300/37711 | Loss: 3.4117 | Avg: 3.8551
+Epoch 1/1 | Step 5400/37711 | Loss: 3.0728 | Avg: 3.8414
+Epoch 1/1 | Step 5400/37711 | Loss: 3.0728 | Avg: 3.8414
+Epoch 1/1 | Step 5500/37711 | Loss: 3.1426 | Avg: 3.8284
+Epoch 1/1 |step 5500/37711 | Loss: 3.1426 | Avg: 3.8284 | Val: 2.9786
+Epoch 1/1 | Step 5600/37711 | Loss: 3.0100 | Avg: 3.8153
+Epoch 1/1 | Step 5600/37711 | Loss: 3.0100 | Avg: 3.8153
+Epoch 1/1 | Step 5700/37711 | Loss: 3.1000 | Avg: 3.8025
+Epoch 1/1 | Step 5700/37711 | Loss: 3.1000 | Avg: 3.8025
+Epoch 1/1 | Step 5800/37711 | Loss: 2.9409 | Avg: 3.7902
+Epoch 1/1 | Step 5800/37711 | Loss: 2.9409 | Avg: 3.7902
+Epoch 1/1 | Step 5900/37711 | Loss: 3.2630 | Avg: 3.7785
+Epoch 1/1 | Step 5900/37711 | Loss: 3.2630 | Avg: 3.7785
+Epoch 1/1 | Step 6000/37711 | Loss: 2.8760 | Avg: 3.7665
+Epoch 1/1 |step 6000/37711 | Loss: 2.8760 | Avg: 3.7665 | Val: 2.9470
+Epoch 1/1 | Step 6100/37711 | Loss: 2.9086 | Avg: 3.7553
+Epoch 1/1 | Step 6100/37711 | Loss: 2.9086 | Avg: 3.7553
+Epoch 1/1 | Step 6200/37711 | Loss: 2.9443 | Avg: 3.7444
+Epoch 1/1 | Step 6200/37711 | Loss: 2.9443 | Avg: 3.7444
+Epoch 1/1 | Step 6300/37711 | Loss: 3.1012 | Avg: 3.7332
+Epoch 1/1 | Step 6300/37711 | Loss: 3.1012 | Avg: 3.7332
+Epoch 1/1 | Step 6400/37711 | Loss: 3.2154 | Avg: 3.7228
+Epoch 1/1 | Step 6400/37711 | Loss: 3.2154 | Avg: 3.7228
+Epoch 1/1 | Step 6500/37711 | Loss: 2.9161 | Avg: 3.7125
+Epoch 1/1 |step 6500/37711 | Loss: 2.9161 | Avg: 3.7125 | Val: 2.9168
+Epoch 1/1 | Step 6600/37711 | Loss: 3.0337 | Avg: 3.7025
+Epoch 1/1 | Step 6600/37711 | Loss: 3.0337 | Avg: 3.7025
+Epoch 1/1 | Step 6700/37711 | Loss: 3.1458 | Avg: 3.6923
+Epoch 1/1 | Step 6700/37711 | Loss: 3.1458 | Avg: 3.6923
+Epoch 1/1 | Step 6800/37711 | Loss: 3.0399 | Avg: 3.6822
+Epoch 1/1 | Step 6800/37711 | Loss: 3.0399 | Avg: 3.6822
+Epoch 1/1 | Step 6900/37711 | Loss: 3.1532 | Avg: 3.6723
+Epoch 1/1 | Step 6900/37711 | Loss: 3.1532 | Avg: 3.6723
+Epoch 1/1 | Step 7000/37711 | Loss: 3.2134 | Avg: 3.6631
+Epoch 1/1 |step 7000/37711 | Loss: 3.2134 | Avg: 3.6631 | Val: 2.8908
+Epoch 1/1 | Step 7100/37711 | Loss: 3.1035 | Avg: 3.6540
+Epoch 1/1 | Step 7100/37711 | Loss: 3.1035 | Avg: 3.6540
+Epoch 1/1 | Step 7200/37711 | Loss: 2.9759 | Avg: 3.6452
+Epoch 1/1 | Step 7200/37711 | Loss: 2.9759 | Avg: 3.6452
+Epoch 1/1 | Step 7300/37711 | Loss: 2.9894 | Avg: 3.6363
+Epoch 1/1 | Step 7300/37711 | Loss: 2.9894 | Avg: 3.6363
+Epoch 1/1 | Step 7400/37711 | Loss: 2.9444 | Avg: 3.6277
+Epoch 1/1 | Step 7400/37711 | Loss: 2.9444 | Avg: 3.6277
+Epoch 1/1 | Step 7500/37711 | Loss: 2.9710 | Avg: 3.6194
+Epoch 1/1 |step 7500/37711 | Loss: 2.9710 | Avg: 3.6194 | Val: 2.8645
+Epoch 1/1 | Step 7600/37711 | Loss: 2.9784 | Avg: 3.6113
+Epoch 1/1 | Step 7600/37711 | Loss: 2.9784 | Avg: 3.6113
+Epoch 1/1 | Step 7700/37711 | Loss: 2.9464 | Avg: 3.6031
+Epoch 1/1 | Step 7700/37711 | Loss: 2.9464 | Avg: 3.6031
+Epoch 1/1 | Step 7800/37711 | Loss: 3.1108 | Avg: 3.5952
+Epoch 1/1 | Step 7800/37711 | Loss: 3.1108 | Avg: 3.5952
+Epoch 1/1 | Step 7900/37711 | Loss: 3.0440 | Avg: 3.5873
+Epoch 1/1 | Step 7900/37711 | Loss: 3.0440 | Avg: 3.5873
+Epoch 1/1 | Step 8000/37711 | Loss: 2.8339 | Avg: 3.5796
+Epoch 1/1 |step 8000/37711 | Loss: 2.8339 | Avg: 3.5796 | Val: 2.8492
+Epoch 1/1 | Step 8100/37711 | Loss: 2.7668 | Avg: 3.5722
+Epoch 1/1 | Step 8100/37711 | Loss: 2.7668 | Avg: 3.5722
+Epoch 1/1 | Step 8200/37711 | Loss: 2.8647 | Avg: 3.5651
+Epoch 1/1 | Step 8200/37711 | Loss: 2.8647 | Avg: 3.5651
+Epoch 1/1 | Step 8300/37711 | Loss: 3.0231 | Avg: 3.5577
+Epoch 1/1 | Step 8300/37711 | Loss: 3.0231 | Avg: 3.5577
+Epoch 1/1 | Step 8400/37711 | Loss: 2.7078 | Avg: 3.5505
+Epoch 1/1 | Step 8400/37711 | Loss: 2.7078 | Avg: 3.5505
+Epoch 1/1 | Step 8500/37711 | Loss: 2.8523 | Avg: 3.5433
+Epoch 1/1 |step 8500/37711 | Loss: 2.8523 | Avg: 3.5433 | Val: 2.8216
+Epoch 1/1 | Step 8600/37711 | Loss: 3.0969 | Avg: 3.5364
+Epoch 1/1 | Step 8600/37711 | Loss: 3.0969 | Avg: 3.5364
+Epoch 1/1 | Step 8700/37711 | Loss: 3.0053 | Avg: 3.5295
+Epoch 1/1 | Step 8700/37711 | Loss: 3.0053 | Avg: 3.5295
+Epoch 1/1 | Step 8800/37711 | Loss: 2.6610 | Avg: 3.5227
+Epoch 1/1 | Step 8800/37711 | Loss: 2.6610 | Avg: 3.5227
+Epoch 1/1 | Step 8900/37711 | Loss: 3.0616 | Avg: 3.5161
+Epoch 1/1 | Step 8900/37711 | Loss: 3.0616 | Avg: 3.5161
+Epoch 1/1 | Step 9000/37711 | Loss: 2.9800 | Avg: 3.5098
+Epoch 1/1 |step 9000/37711 | Loss: 2.9800 | Avg: 3.5098 | Val: 2.8065
+Epoch 1/1 | Step 9100/37711 | Loss: 3.0422 | Avg: 3.5035
+Epoch 1/1 | Step 9100/37711 | Loss: 3.0422 | Avg: 3.5035
+Epoch 1/1 | Step 9200/37711 | Loss: 2.8824 | Avg: 3.4974
+Epoch 1/1 | Step 9200/37711 | Loss: 2.8824 | Avg: 3.4974
+Epoch 1/1 | Step 9300/37711 | Loss: 2.7827 | Avg: 3.4910
+Epoch 1/1 | Step 9300/37711 | Loss: 2.7827 | Avg: 3.4910
+Epoch 1/1 | Step 9400/37711 | Loss: 3.0095 | Avg: 3.4849
+Epoch 1/1 | Step 9400/37711 | Loss: 3.0095 | Avg: 3.4849
+Epoch 1/1 | Step 9500/37711 | Loss: 2.6836 | Avg: 3.4790
+Epoch 1/1 |step 9500/37711 | Loss: 2.6836 | Avg: 3.4790 | Val: 2.7886
+Epoch 1/1 | Step 9600/37711 | Loss: 2.6800 | Avg: 3.4730
+Epoch 1/1 | Step 9600/37711 | Loss: 2.6800 | Avg: 3.4730
+Epoch 1/1 | Step 9700/37711 | Loss: 2.8509 | Avg: 3.4668
+Epoch 1/1 | Step 9700/37711 | Loss: 2.8509 | Avg: 3.4668
+Epoch 1/1 | Step 9800/37711 | Loss: 2.8753 | Avg: 3.4616
+Epoch 1/1 | Step 9800/37711 | Loss: 2.8753 | Avg: 3.4616
+Epoch 1/1 | Step 9900/37711 | Loss: 2.6321 | Avg: 3.4560
+Epoch 1/1 | Step 9900/37711 | Loss: 2.6321 | Avg: 3.4560
+Epoch 1/1 | Step 10000/37711 | Loss: 2.9932 | Avg: 3.4506
+Epoch 1/1 |step 10000/37711 | Loss: 2.9932 | Avg: 3.4506 | Val: 2.7754
+Epoch 1/1 | Step 10100/37711 | Loss: 2.9234 | Avg: 3.4453
+Epoch 1/1 | Step 10100/37711 | Loss: 2.9234 | Avg: 3.4453
+Epoch 1/1 | Step 10200/37711 | Loss: 3.1165 | Avg: 3.4397
+Epoch 1/1 | Step 10200/37711 | Loss: 3.1165 | Avg: 3.4397
+Epoch 1/1 | Step 10300/37711 | Loss: 2.7648 | Avg: 3.4344
+Epoch 1/1 | Step 10300/37711 | Loss: 2.7648 | Avg: 3.4344
+Epoch 1/1 | Step 10400/37711 | Loss: 2.8433 | Avg: 3.4291
+Epoch 1/1 | Step 10400/37711 | Loss: 2.8433 | Avg: 3.4291
+Epoch 1/1 | Step 10500/37711 | Loss: 3.0430 | Avg: 3.4240
+Epoch 1/1 |step 10500/37711 | Loss: 3.0430 | Avg: 3.4240 | Val: 2.7608
+Epoch 1/1 | Step 10600/37711 | Loss: 2.8095 | Avg: 3.4189
+Epoch 1/1 | Step 10600/37711 | Loss: 2.8095 | Avg: 3.4189
+Epoch 1/1 | Step 10700/37711 | Loss: 2.9699 | Avg: 3.4139
+Epoch 1/1 | Step 10700/37711 | Loss: 2.9699 | Avg: 3.4139
+Epoch 1/1 | Step 10800/37711 | Loss: 2.9554 | Avg: 3.4089
+Epoch 1/1 | Step 10800/37711 | Loss: 2.9554 | Avg: 3.4089
+Epoch 1/1 | Step 10900/37711 | Loss: 2.5417 | Avg: 3.4041
+Epoch 1/1 | Step 10900/37711 | Loss: 2.5417 | Avg: 3.4041
+Epoch 1/1 | Step 11000/37711 | Loss: 2.9236 | Avg: 3.3992
+Epoch 1/1 |step 11000/37711 | Loss: 2.9236 | Avg: 3.3992 | Val: 2.7434
+Epoch 1/1 | Step 11100/37711 | Loss: 3.0537 | Avg: 3.3947
+Epoch 1/1 | Step 11100/37711 | Loss: 3.0537 | Avg: 3.3947
+Epoch 1/1 | Step 11200/37711 | Loss: 2.6856 | Avg: 3.3897
+Epoch 1/1 | Step 11200/37711 | Loss: 2.6856 | Avg: 3.3897
+Epoch 1/1 | Step 11300/37711 | Loss: 2.9201 | Avg: 3.3849
+Epoch 1/1 | Step 11300/37711 | Loss: 2.9201 | Avg: 3.3849
+Epoch 1/1 | Step 11400/37711 | Loss: 2.8517 | Avg: 3.3802
+Epoch 1/1 | Step 11400/37711 | Loss: 2.8517 | Avg: 3.3802
+Epoch 1/1 | Step 11500/37711 | Loss: 3.0043 | Avg: 3.3757
+Epoch 1/1 |step 11500/37711 | Loss: 3.0043 | Avg: 3.3757 | Val: 2.7363
+Epoch 1/1 | Step 11600/37711 | Loss: 2.6694 | Avg: 3.3712
+Epoch 1/1 | Step 11600/37711 | Loss: 2.6694 | Avg: 3.3712
+Epoch 1/1 | Step 11700/37711 | Loss: 2.9218 | Avg: 3.3667
+Epoch 1/1 | Step 11700/37711 | Loss: 2.9218 | Avg: 3.3667
+Epoch 1/1 | Step 11800/37711 | Loss: 2.7502 | Avg: 3.3622
+Epoch 1/1 | Step 11800/37711 | Loss: 2.7502 | Avg: 3.3622
+Epoch 1/1 | Step 11900/37711 | Loss: 2.6990 | Avg: 3.3578
+Epoch 1/1 | Step 11900/37711 | Loss: 2.6990 | Avg: 3.3578
+Epoch 1/1 | Step 12000/37711 | Loss: 2.6534 | Avg: 3.3536
+Epoch 1/1 |step 12000/37711 | Loss: 2.6534 | Avg: 3.3536 | Val: 2.7187
+Epoch 1/1 | Step 12100/37711 | Loss: 2.9988 | Avg: 3.3495
+Epoch 1/1 | Step 12100/37711 | Loss: 2.9988 | Avg: 3.3495
+Epoch 1/1 | Step 12200/37711 | Loss: 2.7849 | Avg: 3.3454
+Epoch 1/1 | Step 12200/37711 | Loss: 2.7849 | Avg: 3.3454
+Epoch 1/1 | Step 12300/37711 | Loss: 2.6924 | Avg: 3.3415
+Epoch 1/1 | Step 12300/37711 | Loss: 2.6924 | Avg: 3.3415
+Epoch 1/1 | Step 12400/37711 | Loss: 2.6054 | Avg: 3.3375
+Epoch 1/1 | Step 12400/37711 | Loss: 2.6054 | Avg: 3.3375
+Epoch 1/1 | Step 12500/37711 | Loss: 2.8367 | Avg: 3.3335
+Epoch 1/1 |step 12500/37711 | Loss: 2.8367 | Avg: 3.3335 | Val: 2.7173
+Epoch 1/1 | Step 12600/37711 | Loss: 2.6842 | Avg: 3.3296
+Epoch 1/1 | Step 12600/37711 | Loss: 2.6842 | Avg: 3.3296
+Epoch 1/1 | Step 12700/37711 | Loss: 2.7318 | Avg: 3.3258
+Epoch 1/1 | Step 12700/37711 | Loss: 2.7318 | Avg: 3.3258
+Epoch 1/1 | Step 12800/37711 | Loss: 2.9073 | Avg: 3.3219
+Epoch 1/1 | Step 12800/37711 | Loss: 2.9073 | Avg: 3.3219
+Epoch 1/1 | Step 12900/37711 | Loss: 2.7778 | Avg: 3.3180
+Epoch 1/1 | Step 12900/37711 | Loss: 2.7778 | Avg: 3.3180
+Epoch 1/1 | Step 13000/37711 | Loss: 2.8922 | Avg: 3.3142
+Epoch 1/1 |step 13000/37711 | Loss: 2.8922 | Avg: 3.3142 | Val: 2.7034
+Epoch 1/1 | Step 13100/37711 | Loss: 2.9204 | Avg: 3.3106
+Epoch 1/1 | Step 13100/37711 | Loss: 2.9204 | Avg: 3.3106
+Epoch 1/1 | Step 13200/37711 | Loss: 2.8582 | Avg: 3.3068
+Epoch 1/1 | Step 13200/37711 | Loss: 2.8582 | Avg: 3.3068
+Epoch 1/1 | Step 13300/37711 | Loss: 2.7924 | Avg: 3.3032
+Epoch 1/1 | Step 13300/37711 | Loss: 2.7924 | Avg: 3.3032
+Epoch 1/1 | Step 13400/37711 | Loss: 2.6884 | Avg: 3.2997
+Epoch 1/1 | Step 13400/37711 | Loss: 2.6884 | Avg: 3.2997
+Epoch 1/1 | Step 13500/37711 | Loss: 2.9703 | Avg: 3.2962
+Epoch 1/1 |step 13500/37711 | Loss: 2.9703 | Avg: 3.2962 | Val: 2.6934
+Epoch 1/1 | Step 13600/37711 | Loss: 2.7505 | Avg: 3.2927
+Epoch 1/1 | Step 13600/37711 | Loss: 2.7505 | Avg: 3.2927
+Epoch 1/1 | Step 13700/37711 | Loss: 2.7416 | Avg: 3.2891
+Epoch 1/1 | Step 13700/37711 | Loss: 2.7416 | Avg: 3.2891
+Epoch 1/1 | Step 13800/37711 | Loss: 2.9199 | Avg: 3.2857
+Epoch 1/1 | Step 13800/37711 | Loss: 2.9199 | Avg: 3.2857
+Epoch 1/1 | Step 13900/37711 | Loss: 2.7976 | Avg: 3.2823
+Epoch 1/1 | Step 13900/37711 | Loss: 2.7976 | Avg: 3.2823
+Epoch 1/1 | Step 14000/37711 | Loss: 2.9349 | Avg: 3.2789
+Epoch 1/1 |step 14000/37711 | Loss: 2.9349 | Avg: 3.2789 | Val: 2.6822
+Epoch 1/1 | Step 14100/37711 | Loss: 2.8309 | Avg: 3.2756
+Epoch 1/1 | Step 14100/37711 | Loss: 2.8309 | Avg: 3.2756
+Epoch 1/1 | Step 14200/37711 | Loss: 2.6921 | Avg: 3.2723
+Epoch 1/1 | Step 14200/37711 | Loss: 2.6921 | Avg: 3.2723
+Epoch 1/1 | Step 14300/37711 | Loss: 2.8093 | Avg: 3.2689
+Epoch 1/1 | Step 14300/37711 | Loss: 2.8093 | Avg: 3.2689
+Epoch 1/1 | Step 14400/37711 | Loss: 2.9393 | Avg: 3.2656
+Epoch 1/1 | Step 14400/37711 | Loss: 2.9393 | Avg: 3.2656
+Epoch 1/1 | Step 14500/37711 | Loss: 2.7896 | Avg: 3.2625
+Epoch 1/1 |step 14500/37711 | Loss: 2.7896 | Avg: 3.2625 | Val: 2.6703
+Epoch 1/1 | Step 14600/37711 | Loss: 2.6919 | Avg: 3.2593
+Epoch 1/1 | Step 14600/37711 | Loss: 2.6919 | Avg: 3.2593
+Epoch 1/1 | Step 14700/37711 | Loss: 2.8610 | Avg: 3.2562
+Epoch 1/1 | Step 14700/37711 | Loss: 2.8610 | Avg: 3.2562
+Epoch 1/1 | Step 14800/37711 | Loss: 2.7698 | Avg: 3.2531
+Epoch 1/1 | Step 14800/37711 | Loss: 2.7698 | Avg: 3.2531
+Epoch 1/1 | Step 14900/37711 | Loss: 2.8230 | Avg: 3.2500
+Epoch 1/1 | Step 14900/37711 | Loss: 2.8230 | Avg: 3.2500
+Epoch 1/1 | Step 15000/37711 | Loss: 2.6240 | Avg: 3.2471
+Epoch 1/1 |step 15000/37711 | Loss: 2.6240 | Avg: 3.2471 | Val: 2.6637
+Epoch 1/1 | Step 15100/37711 | Loss: 2.7983 | Avg: 3.2441
+Epoch 1/1 | Step 15100/37711 | Loss: 2.7983 | Avg: 3.2441
+Epoch 1/1 | Step 15200/37711 | Loss: 2.9221 | Avg: 3.2412
+Epoch 1/1 | Step 15200/37711 | Loss: 2.9221 | Avg: 3.2412
+Epoch 1/1 | Step 15300/37711 | Loss: 2.7596 | Avg: 3.2382
+Epoch 1/1 | Step 15300/37711 | Loss: 2.7596 | Avg: 3.2382
+Epoch 1/1 | Step 15400/37711 | Loss: 2.7602 | Avg: 3.2353
+Epoch 1/1 | Step 15400/37711 | Loss: 2.7602 | Avg: 3.2353
+Epoch 1/1 | Step 15500/37711 | Loss: 2.8527 | Avg: 3.2323
+Epoch 1/1 |step 15500/37711 | Loss: 2.8527 | Avg: 3.2323 | Val: 2.6541
+Epoch 1/1 | Step 15600/37711 | Loss: 2.8478 | Avg: 3.2294
+Epoch 1/1 | Step 15600/37711 | Loss: 2.8478 | Avg: 3.2294
+Epoch 1/1 | Step 15700/37711 | Loss: 2.6602 | Avg: 3.2265
+Epoch 1/1 | Step 15700/37711 | Loss: 2.6602 | Avg: 3.2265
+Epoch 1/1 | Step 15800/37711 | Loss: 2.9549 | Avg: 3.2237
+Epoch 1/1 | Step 15800/37711 | Loss: 2.9549 | Avg: 3.2237
+Epoch 1/1 | Step 15900/37711 | Loss: 3.0491 | Avg: 3.2210
+Epoch 1/1 | Step 15900/37711 | Loss: 3.0491 | Avg: 3.2210
+Epoch 1/1 | Step 16000/37711 | Loss: 2.7212 | Avg: 3.2181
+Epoch 1/1 |step 16000/37711 | Loss: 2.7212 | Avg: 3.2181 | Val: 2.6492
+Epoch 1/1 | Step 16100/37711 | Loss: 2.6739 | Avg: 3.2153
+Epoch 1/1 | Step 16100/37711 | Loss: 2.6739 | Avg: 3.2153
+Epoch 1/1 | Step 16200/37711 | Loss: 2.8543 | Avg: 3.2126
+Epoch 1/1 | Step 16200/37711 | Loss: 2.8543 | Avg: 3.2126
+Epoch 1/1 | Step 16300/37711 | Loss: 2.7953 | Avg: 3.2100
+Epoch 1/1 | Step 16300/37711 | Loss: 2.7953 | Avg: 3.2100
+Epoch 1/1 | Step 16400/37711 | Loss: 2.5984 | Avg: 3.2074
+Epoch 1/1 | Step 16400/37711 | Loss: 2.5984 | Avg: 3.2074
+Epoch 1/1 | Step 16500/37711 | Loss: 2.6479 | Avg: 3.2047
+Epoch 1/1 |step 16500/37711 | Loss: 2.6479 | Avg: 3.2047 | Val: 2.6406
+Epoch 1/1 | Step 16600/37711 | Loss: 2.7968 | Avg: 3.2021
+Epoch 1/1 | Step 16600/37711 | Loss: 2.7968 | Avg: 3.2021
+Epoch 1/1 | Step 16700/37711 | Loss: 2.8589 | Avg: 3.1995
+Epoch 1/1 | Step 16700/37711 | Loss: 2.8589 | Avg: 3.1995
+Epoch 1/1 | Step 16800/37711 | Loss: 2.6770 | Avg: 3.1970
+Epoch 1/1 | Step 16800/37711 | Loss: 2.6770 | Avg: 3.1970
+Epoch 1/1 | Step 16900/37711 | Loss: 2.6784 | Avg: 3.1946
+Epoch 1/1 | Step 16900/37711 | Loss: 2.6784 | Avg: 3.1946
+Epoch 1/1 | Step 17000/37711 | Loss: 2.6647 | Avg: 3.1920
+Epoch 1/1 |step 17000/37711 | Loss: 2.6647 | Avg: 3.1920 | Val: 2.6359
+Epoch 1/1 | Step 17100/37711 | Loss: 2.9297 | Avg: 3.1895
+Epoch 1/1 | Step 17100/37711 | Loss: 2.9297 | Avg: 3.1895
+Epoch 1/1 | Step 17200/37711 | Loss: 2.7174 | Avg: 3.1869
+Epoch 1/1 | Step 17200/37711 | Loss: 2.7174 | Avg: 3.1869
+Epoch 1/1 | Step 17300/37711 | Loss: 2.9451 | Avg: 3.1845
+Epoch 1/1 | Step 17300/37711 | Loss: 2.9451 | Avg: 3.1845
+Epoch 1/1 | Step 17400/37711 | Loss: 2.8114 | Avg: 3.1821
+Epoch 1/1 | Step 17400/37711 | Loss: 2.8114 | Avg: 3.1821
+Epoch 1/1 | Step 17500/37711 | Loss: 3.0151 | Avg: 3.1796
+Epoch 1/1 |step 17500/37711 | Loss: 3.0151 | Avg: 3.1796 | Val: 2.6282
+Epoch 1/1 | Step 17600/37711 | Loss: 2.8745 | Avg: 3.1772
+Epoch 1/1 | Step 17600/37711 | Loss: 2.8745 | Avg: 3.1772
+Epoch 1/1 | Step 17700/37711 | Loss: 2.7282 | Avg: 3.1747
+Epoch 1/1 | Step 17700/37711 | Loss: 2.7282 | Avg: 3.1747
+Epoch 1/1 | Step 17800/37711 | Loss: 2.6474 | Avg: 3.1723
+Epoch 1/1 | Step 17800/37711 | Loss: 2.6474 | Avg: 3.1723
+Epoch 1/1 | Step 17900/37711 | Loss: 2.7393 | Avg: 3.1699
+Epoch 1/1 | Step 17900/37711 | Loss: 2.7393 | Avg: 3.1699
+Epoch 1/1 | Step 18000/37711 | Loss: 2.6883 | Avg: 3.1676
+Epoch 1/1 |step 18000/37711 | Loss: 2.6883 | Avg: 3.1676 | Val: 2.6194
+Epoch 1/1 | Step 18100/37711 | Loss: 2.8167 | Avg: 3.1653
+Epoch 1/1 | Step 18100/37711 | Loss: 2.8167 | Avg: 3.1653
+Epoch 1/1 | Step 18200/37711 | Loss: 2.4900 | Avg: 3.1630
+Epoch 1/1 | Step 18200/37711 | Loss: 2.4900 | Avg: 3.1630
+Epoch 1/1 | Step 18300/37711 | Loss: 2.8085 | Avg: 3.1606
+Epoch 1/1 | Step 18300/37711 | Loss: 2.8085 | Avg: 3.1606
+Epoch 1/1 | Step 18400/37711 | Loss: 2.6477 | Avg: 3.1584
+Epoch 1/1 | Step 18400/37711 | Loss: 2.6477 | Avg: 3.1584
+Epoch 1/1 | Step 18500/37711 | Loss: 2.6613 | Avg: 3.1561
+Epoch 1/1 |step 18500/37711 | Loss: 2.6613 | Avg: 3.1561 | Val: 2.6151
+Epoch 1/1 | Step 18600/37711 | Loss: 2.5454 | Avg: 3.1539
+Epoch 1/1 | Step 18600/37711 | Loss: 2.5454 | Avg: 3.1539
+Epoch 1/1 | Step 18700/37711 | Loss: 2.7749 | Avg: 3.1517
+Epoch 1/1 | Step 18700/37711 | Loss: 2.7749 | Avg: 3.1517
+Epoch 1/1 | Step 18800/37711 | Loss: 2.7852 | Avg: 3.1496
+Epoch 1/1 | Step 18800/37711 | Loss: 2.7852 | Avg: 3.1496
+Epoch 1/1 | Step 18900/37711 | Loss: 2.7009 | Avg: 3.1473
+Epoch 1/1 | Step 18900/37711 | Loss: 2.7009 | Avg: 3.1473
+Epoch 1/1 | Step 19000/37711 | Loss: 3.0145 | Avg: 3.1452
+Epoch 1/1 |step 19000/37711 | Loss: 3.0145 | Avg: 3.1452 | Val: 2.6078
+Epoch 1/1 | Step 19100/37711 | Loss: 2.8859 | Avg: 3.1431
+Epoch 1/1 | Step 19100/37711 | Loss: 2.8859 | Avg: 3.1431
+Epoch 1/1 | Step 19200/37711 | Loss: 2.9101 | Avg: 3.1410
+Epoch 1/1 | Step 19200/37711 | Loss: 2.9101 | Avg: 3.1410
+Epoch 1/1 | Step 19300/37711 | Loss: 2.7393 | Avg: 3.1388
+Epoch 1/1 | Step 19300/37711 | Loss: 2.7393 | Avg: 3.1388
+Epoch 1/1 | Step 19400/37711 | Loss: 2.7761 | Avg: 3.1366
+Epoch 1/1 | Step 19400/37711 | Loss: 2.7761 | Avg: 3.1366
+Epoch 1/1 | Step 19500/37711 | Loss: 2.6992 | Avg: 3.1344
+Epoch 1/1 |step 19500/37711 | Loss: 2.6992 | Avg: 3.1344 | Val: 2.5980
+Epoch 1/1 | Step 19600/37711 | Loss: 2.7179 | Avg: 3.1324
+Epoch 1/1 | Step 19600/37711 | Loss: 2.7179 | Avg: 3.1324
+Epoch 1/1 | Step 19700/37711 | Loss: 2.5575 | Avg: 3.1303
+Epoch 1/1 | Step 19700/37711 | Loss: 2.5575 | Avg: 3.1303
+Epoch 1/1 | Step 19800/37711 | Loss: 2.5551 | Avg: 3.1281
+Epoch 1/1 | Step 19800/37711 | Loss: 2.5551 | Avg: 3.1281
+Epoch 1/1 | Step 19900/37711 | Loss: 2.7028 | Avg: 3.1260
+Epoch 1/1 | Step 19900/37711 | Loss: 2.7028 | Avg: 3.1260
+Epoch 1/1 | Step 20000/37711 | Loss: 2.8085 | Avg: 3.1241
+Epoch 1/1 |step 20000/37711 | Loss: 2.8085 | Avg: 3.1241 | Val: 2.5913
+Epoch 1/1 | Step 20100/37711 | Loss: 2.7281 | Avg: 3.1220
+Epoch 1/1 | Step 20100/37711 | Loss: 2.7281 | Avg: 3.1220
+Epoch 1/1 | Step 20200/37711 | Loss: 2.8598 | Avg: 3.1200
+Epoch 1/1 | Step 20200/37711 | Loss: 2.8598 | Avg: 3.1200
+Epoch 1/1 | Step 20300/37711 | Loss: 2.7855 | Avg: 3.1180
+Epoch 1/1 | Step 20300/37711 | Loss: 2.7855 | Avg: 3.1180
+Epoch 1/1 | Step 20400/37711 | Loss: 2.6855 | Avg: 3.1161
+Epoch 1/1 | Step 20400/37711 | Loss: 2.6855 | Avg: 3.1161
+Epoch 1/1 | Step 20500/37711 | Loss: 2.7642 | Avg: 3.1142
+Epoch 1/1 |step 20500/37711 | Loss: 2.7642 | Avg: 3.1142 | Val: 2.5892
+Epoch 1/1 | Step 20600/37711 | Loss: 2.7347 | Avg: 3.1123
+Epoch 1/1 | Step 20600/37711 | Loss: 2.7347 | Avg: 3.1123
+Epoch 1/1 | Step 20700/37711 | Loss: 2.6503 | Avg: 3.1104
+Epoch 1/1 | Step 20700/37711 | Loss: 2.6503 | Avg: 3.1104
+Epoch 1/1 | Step 20800/37711 | Loss: 2.8695 | Avg: 3.1085
+Epoch 1/1 | Step 20800/37711 | Loss: 2.8695 | Avg: 3.1085
+Epoch 1/1 | Step 20900/37711 | Loss: 2.7262 | Avg: 3.1066
+Epoch 1/1 | Step 20900/37711 | Loss: 2.7262 | Avg: 3.1066
+Epoch 1/1 | Step 21000/37711 | Loss: 2.6951 | Avg: 3.1048
+Epoch 1/1 |step 21000/37711 | Loss: 2.6951 | Avg: 3.1048 | Val: 2.5825
+Epoch 1/1 | Step 21100/37711 | Loss: 2.6032 | Avg: 3.1029
+Epoch 1/1 | Step 21100/37711 | Loss: 2.6032 | Avg: 3.1029
+Epoch 1/1 | Step 21200/37711 | Loss: 2.8588 | Avg: 3.1010
+Epoch 1/1 | Step 21200/37711 | Loss: 2.8588 | Avg: 3.1010
+Epoch 1/1 | Step 21300/37711 | Loss: 2.7259 | Avg: 3.0993
+Epoch 1/1 | Step 21300/37711 | Loss: 2.7259 | Avg: 3.0993
+Epoch 1/1 | Step 21400/37711 | Loss: 2.6735 | Avg: 3.0974
+Epoch 1/1 | Step 21400/37711 | Loss: 2.6735 | Avg: 3.0974
+Epoch 1/1 | Step 21500/37711 | Loss: 2.6228 | Avg: 3.0956
+Epoch 1/1 |step 21500/37711 | Loss: 2.6228 | Avg: 3.0956 | Val: 2.5832
+Epoch 1/1 | Step 21600/37711 | Loss: 2.5136 | Avg: 3.0938
+Epoch 1/1 | Step 21600/37711 | Loss: 2.5136 | Avg: 3.0938
+Epoch 1/1 | Step 21700/37711 | Loss: 2.7351 | Avg: 3.0919
+Epoch 1/1 | Step 21700/37711 | Loss: 2.7351 | Avg: 3.0919
+Epoch 1/1 | Step 21800/37711 | Loss: 2.7958 | Avg: 3.0902
+Epoch 1/1 | Step 21800/37711 | Loss: 2.7958 | Avg: 3.0902
+Epoch 1/1 | Step 21900/37711 | Loss: 2.7870 | Avg: 3.0884
+Epoch 1/1 | Step 21900/37711 | Loss: 2.7870 | Avg: 3.0884
+Epoch 1/1 | Step 22000/37711 | Loss: 2.5786 | Avg: 3.0865
+Epoch 1/1 |step 22000/37711 | Loss: 2.5786 | Avg: 3.0865 | Val: 2.5715
+Epoch 1/1 | Step 22100/37711 | Loss: 2.8099 | Avg: 3.0848
+Epoch 1/1 | Step 22100/37711 | Loss: 2.8099 | Avg: 3.0848
+Epoch 1/1 | Step 22200/37711 | Loss: 2.9016 | Avg: 3.0831
+Epoch 1/1 | Step 22200/37711 | Loss: 2.9016 | Avg: 3.0831
+Epoch 1/1 | Step 22300/37711 | Loss: 2.7563 | Avg: 3.0814
+Epoch 1/1 | Step 22300/37711 | Loss: 2.7563 | Avg: 3.0814
+Epoch 1/1 | Step 22400/37711 | Loss: 2.9070 | Avg: 3.0796
+Epoch 1/1 | Step 22400/37711 | Loss: 2.9070 | Avg: 3.0796
+Epoch 1/1 | Step 22500/37711 | Loss: 2.6975 | Avg: 3.0780
+Epoch 1/1 |step 22500/37711 | Loss: 2.6975 | Avg: 3.0780 | Val: 2.5679
+Epoch 1/1 | Step 22600/37711 | Loss: 2.6770 | Avg: 3.0763
+Epoch 1/1 | Step 22600/37711 | Loss: 2.6770 | Avg: 3.0763
+Epoch 1/1 | Step 22700/37711 | Loss: 2.6790 | Avg: 3.0746
+Epoch 1/1 | Step 22700/37711 | Loss: 2.6790 | Avg: 3.0746
+Epoch 1/1 | Step 22800/37711 | Loss: 2.4985 | Avg: 3.0727
+Epoch 1/1 | Step 22800/37711 | Loss: 2.4985 | Avg: 3.0727
+Epoch 1/1 | Step 22900/37711 | Loss: 2.7765 | Avg: 3.0710
+Epoch 1/1 | Step 22900/37711 | Loss: 2.7765 | Avg: 3.0710
+Epoch 1/1 | Step 23000/37711 | Loss: 2.7876 | Avg: 3.0693
+Epoch 1/1 |step 23000/37711 | Loss: 2.7876 | Avg: 3.0693 | Val: 2.5646
+Epoch 1/1 | Step 23100/37711 | Loss: 2.7124 | Avg: 3.0677
+Epoch 1/1 | Step 23100/37711 | Loss: 2.7124 | Avg: 3.0677
+Epoch 1/1 | Step 23200/37711 | Loss: 2.7411 | Avg: 3.0661
+Epoch 1/1 | Step 23200/37711 | Loss: 2.7411 | Avg: 3.0661
+Epoch 1/1 | Step 23300/37711 | Loss: 2.6720 | Avg: 3.0646
+Epoch 1/1 | Step 23300/37711 | Loss: 2.6720 | Avg: 3.0646
+Epoch 1/1 | Step 23400/37711 | Loss: 2.8481 | Avg: 3.0629
+Epoch 1/1 | Step 23400/37711 | Loss: 2.8481 | Avg: 3.0629
+Epoch 1/1 | Step 23500/37711 | Loss: 2.8097 | Avg: 3.0614
+Epoch 1/1 |step 23500/37711 | Loss: 2.8097 | Avg: 3.0614 | Val: 2.5629
+Epoch 1/1 | Step 23600/37711 | Loss: 2.4637 | Avg: 3.0598
+Epoch 1/1 | Step 23600/37711 | Loss: 2.4637 | Avg: 3.0598
+Epoch 1/1 | Step 23700/37711 | Loss: 2.6145 | Avg: 3.0581
+Epoch 1/1 | Step 23700/37711 | Loss: 2.6145 | Avg: 3.0581
+Epoch 1/1 | Step 23800/37711 | Loss: 2.6861 | Avg: 3.0566
+Epoch 1/1 | Step 23800/37711 | Loss: 2.6861 | Avg: 3.0566
+Epoch 1/1 | Step 23900/37711 | Loss: 2.6733 | Avg: 3.0550
+Epoch 1/1 | Step 23900/37711 | Loss: 2.6733 | Avg: 3.0550
+Epoch 1/1 | Step 24000/37711 | Loss: 2.7232 | Avg: 3.0535
+Epoch 1/1 |step 24000/37711 | Loss: 2.7232 | Avg: 3.0535 | Val: 2.5552
+Epoch 1/1 | Step 24100/37711 | Loss: 2.6192 | Avg: 3.0520
+Epoch 1/1 | Step 24100/37711 | Loss: 2.6192 | Avg: 3.0520
+Epoch 1/1 | Step 24200/37711 | Loss: 2.5342 | Avg: 3.0503
+Epoch 1/1 | Step 24200/37711 | Loss: 2.5342 | Avg: 3.0503
+Epoch 1/1 | Step 24300/37711 | Loss: 2.6372 | Avg: 3.0487
+Epoch 1/1 | Step 24300/37711 | Loss: 2.6372 | Avg: 3.0487
+Epoch 1/1 | Step 24400/37711 | Loss: 2.6428 | Avg: 3.0473
+Epoch 1/1 | Step 24400/37711 | Loss: 2.6428 | Avg: 3.0473
+Epoch 1/1 | Step 24500/37711 | Loss: 2.5794 | Avg: 3.0458
+Epoch 1/1 |step 24500/37711 | Loss: 2.5794 | Avg: 3.0458 | Val: 2.5546
+Epoch 1/1 | Step 24600/37711 | Loss: 2.4787 | Avg: 3.0444
+Epoch 1/1 | Step 24600/37711 | Loss: 2.4787 | Avg: 3.0444
+Epoch 1/1 | Step 24700/37711 | Loss: 2.8158 | Avg: 3.0429
+Epoch 1/1 | Step 24700/37711 | Loss: 2.8158 | Avg: 3.0429
+Epoch 1/1 | Step 24800/37711 | Loss: 2.5763 | Avg: 3.0414
+Epoch 1/1 | Step 24800/37711 | Loss: 2.5763 | Avg: 3.0414
+Epoch 1/1 | Step 24900/37711 | Loss: 2.6693 | Avg: 3.0399
+Epoch 1/1 | Step 24900/37711 | Loss: 2.6693 | Avg: 3.0399
+Epoch 1/1 | Step 25000/37711 | Loss: 2.8874 | Avg: 3.0385
+Epoch 1/1 |step 25000/37711 | Loss: 2.8874 | Avg: 3.0385 | Val: 2.5461
+Epoch 1/1 | Step 25100/37711 | Loss: 2.5619 | Avg: 3.0370
+Epoch 1/1 | Step 25100/37711 | Loss: 2.5619 | Avg: 3.0370
+Epoch 1/1 | Step 25200/37711 | Loss: 2.8417 | Avg: 3.0357
+Epoch 1/1 | Step 25200/37711 | Loss: 2.8417 | Avg: 3.0357
+Epoch 1/1 | Step 25300/37711 | Loss: 2.8108 | Avg: 3.0343
+Epoch 1/1 | Step 25300/37711 | Loss: 2.8108 | Avg: 3.0343
+Epoch 1/1 | Step 25400/37711 | Loss: 2.7061 | Avg: 3.0328
+Epoch 1/1 | Step 25400/37711 | Loss: 2.7061 | Avg: 3.0328
+Epoch 1/1 | Step 25500/37711 | Loss: 2.6499 | Avg: 3.0315
+Epoch 1/1 |step 25500/37711 | Loss: 2.6499 | Avg: 3.0315 | Val: 2.5415
+Epoch 1/1 | Step 25600/37711 | Loss: 2.7134 | Avg: 3.0301
+Epoch 1/1 | Step 25600/37711 | Loss: 2.7134 | Avg: 3.0301
+Epoch 1/1 | Step 25700/37711 | Loss: 2.9420 | Avg: 3.0287
+Epoch 1/1 | Step 25700/37711 | Loss: 2.9420 | Avg: 3.0287
+Epoch 1/1 | Step 25800/37711 | Loss: 2.8676 | Avg: 3.0274
+Epoch 1/1 | Step 25800/37711 | Loss: 2.8676 | Avg: 3.0274
+Epoch 1/1 | Step 25900/37711 | Loss: 2.7294 | Avg: 3.0260
+Epoch 1/1 | Step 25900/37711 | Loss: 2.7294 | Avg: 3.0260
+Epoch 1/1 | Step 26000/37711 | Loss: 2.7296 | Avg: 3.0246
+Epoch 1/1 |step 26000/37711 | Loss: 2.7296 | Avg: 3.0246 | Val: 2.5400
+Epoch 1/1 | Step 26100/37711 | Loss: 2.8614 | Avg: 3.0232
+Epoch 1/1 | Step 26100/37711 | Loss: 2.8614 | Avg: 3.0232
+Epoch 1/1 | Step 26200/37711 | Loss: 2.5661 | Avg: 3.0218
+Epoch 1/1 | Step 26200/37711 | Loss: 2.5661 | Avg: 3.0218
+Epoch 1/1 | Step 26300/37711 | Loss: 2.5092 | Avg: 3.0205
+Epoch 1/1 | Step 26300/37711 | Loss: 2.5092 | Avg: 3.0205
+Epoch 1/1 | Step 26400/37711 | Loss: 2.6897 | Avg: 3.0192
+Epoch 1/1 | Step 26400/37711 | Loss: 2.6897 | Avg: 3.0192
+Epoch 1/1 | Step 26500/37711 | Loss: 2.7871 | Avg: 3.0178
+Epoch 1/1 |step 26500/37711 | Loss: 2.7871 | Avg: 3.0178 | Val: 2.5386
+Epoch 1/1 | Step 26600/37711 | Loss: 2.5183 | Avg: 3.0166
+Epoch 1/1 | Step 26600/37711 | Loss: 2.5183 | Avg: 3.0166
+Epoch 1/1 | Step 26700/37711 | Loss: 2.8428 | Avg: 3.0153
+Epoch 1/1 | Step 26700/37711 | Loss: 2.8428 | Avg: 3.0153
+Epoch 1/1 | Step 26800/37711 | Loss: 2.6692 | Avg: 3.0140
+Epoch 1/1 | Step 26800/37711 | Loss: 2.6692 | Avg: 3.0140
+Epoch 1/1 | Step 26900/37711 | Loss: 2.5278 | Avg: 3.0128
+Epoch 1/1 | Step 26900/37711 | Loss: 2.5278 | Avg: 3.0128
+Epoch 1/1 | Step 27000/37711 | Loss: 2.7233 | Avg: 3.0114
+Epoch 1/1 |step 27000/37711 | Loss: 2.7233 | Avg: 3.0114 | Val: 2.5324
+Epoch 1/1 | Step 27100/37711 | Loss: 2.6422 | Avg: 3.0102
+Epoch 1/1 | Step 27100/37711 | Loss: 2.6422 | Avg: 3.0102
+Epoch 1/1 | Step 27200/37711 | Loss: 2.5030 | Avg: 3.0088
+Epoch 1/1 | Step 27200/37711 | Loss: 2.5030 | Avg: 3.0088
+Epoch 1/1 | Step 27300/37711 | Loss: 2.9265 | Avg: 3.0075
+Epoch 1/1 | Step 27300/37711 | Loss: 2.9265 | Avg: 3.0075
+Epoch 1/1 | Step 27400/37711 | Loss: 2.6715 | Avg: 3.0063
+Epoch 1/1 | Step 27400/37711 | Loss: 2.6715 | Avg: 3.0063
+Epoch 1/1 | Step 27500/37711 | Loss: 2.8948 | Avg: 3.0050
+Epoch 1/1 |step 27500/37711 | Loss: 2.8948 | Avg: 3.0050 | Val: 2.5280
+Epoch 1/1 | Step 27600/37711 | Loss: 2.6808 | Avg: 3.0037
+Epoch 1/1 | Step 27600/37711 | Loss: 2.6808 | Avg: 3.0037
+Epoch 1/1 | Step 27700/37711 | Loss: 2.7083 | Avg: 3.0025
+Epoch 1/1 | Step 27700/37711 | Loss: 2.7083 | Avg: 3.0025
+Epoch 1/1 | Step 27800/37711 | Loss: 2.7800 | Avg: 3.0012
+Epoch 1/1 | Step 27800/37711 | Loss: 2.7800 | Avg: 3.0012
+Epoch 1/1 | Step 27900/37711 | Loss: 2.5511 | Avg: 2.9999
+Epoch 1/1 | Step 27900/37711 | Loss: 2.5511 | Avg: 2.9999
+Epoch 1/1 | Step 28000/37711 | Loss: 2.7742 | Avg: 2.9986
+Epoch 1/1 |step 28000/37711 | Loss: 2.7742 | Avg: 2.9986 | Val: 2.5270
+Epoch 1/1 | Step 28100/37711 | Loss: 2.6460 | Avg: 2.9974
+Epoch 1/1 | Step 28100/37711 | Loss: 2.6460 | Avg: 2.9974
+Epoch 1/1 | Step 28200/37711 | Loss: 2.6333 | Avg: 2.9962
+Epoch 1/1 | Step 28200/37711 | Loss: 2.6333 | Avg: 2.9962
+Epoch 1/1 | Step 28300/37711 | Loss: 2.4100 | Avg: 2.9949
+Epoch 1/1 | Step 28300/37711 | Loss: 2.4100 | Avg: 2.9949
+Epoch 1/1 | Step 28400/37711 | Loss: 2.8238 | Avg: 2.9937
+Epoch 1/1 | Step 28400/37711 | Loss: 2.8238 | Avg: 2.9937
+Epoch 1/1 | Step 28500/37711 | Loss: 2.6957 | Avg: 2.9924
+Epoch 1/1 |step 28500/37711 | Loss: 2.6957 | Avg: 2.9924 | Val: 2.5228
+Epoch 1/1 | Step 28600/37711 | Loss: 2.6580 | Avg: 2.9912
+Epoch 1/1 | Step 28600/37711 | Loss: 2.6580 | Avg: 2.9912
+Epoch 1/1 | Step 28700/37711 | Loss: 2.7988 | Avg: 2.9900
+Epoch 1/1 | Step 28700/37711 | Loss: 2.7988 | Avg: 2.9900
+Epoch 1/1 | Step 28800/37711 | Loss: 2.5679 | Avg: 2.9888
+Epoch 1/1 | Step 28800/37711 | Loss: 2.5679 | Avg: 2.9888
+Epoch 1/1 | Step 28900/37711 | Loss: 2.5448 | Avg: 2.9876
+Epoch 1/1 | Step 28900/37711 | Loss: 2.5448 | Avg: 2.9876
+Epoch 1/1 | Step 29000/37711 | Loss: 2.6588 | Avg: 2.9864
+Epoch 1/1 |step 29000/37711 | Loss: 2.6588 | Avg: 2.9864 | Val: 2.5171
+Epoch 1/1 | Step 29100/37711 | Loss: 2.7180 | Avg: 2.9853
+Epoch 1/1 | Step 29100/37711 | Loss: 2.7180 | Avg: 2.9853
+Epoch 1/1 | Step 29200/37711 | Loss: 2.4326 | Avg: 2.9841
+Epoch 1/1 | Step 29200/37711 | Loss: 2.4326 | Avg: 2.9841
+Epoch 1/1 | Step 29300/37711 | Loss: 2.7260 | Avg: 2.9829
+Epoch 1/1 | Step 29300/37711 | Loss: 2.7260 | Avg: 2.9829
+Epoch 1/1 | Step 29400/37711 | Loss: 2.6583 | Avg: 2.9817
+Epoch 1/1 | Step 29400/37711 | Loss: 2.6583 | Avg: 2.9817
+Epoch 1/1 | Step 29500/37711 | Loss: 2.8729 | Avg: 2.9806
+Epoch 1/1 |step 29500/37711 | Loss: 2.8729 | Avg: 2.9806 | Val: 2.5152
+Epoch 1/1 | Step 29600/37711 | Loss: 2.7787 | Avg: 2.9794
+Epoch 1/1 | Step 29600/37711 | Loss: 2.7787 | Avg: 2.9794
+Epoch 1/1 | Step 29700/37711 | Loss: 2.5605 | Avg: 2.9784
+Epoch 1/1 | Step 29700/37711 | Loss: 2.5605 | Avg: 2.9784
+Epoch 1/1 | Step 29800/37711 | Loss: 2.5655 | Avg: 2.9772
+Epoch 1/1 | Step 29800/37711 | Loss: 2.5655 | Avg: 2.9772
+Epoch 1/1 | Step 29900/37711 | Loss: 2.6407 | Avg: 2.9762
+Epoch 1/1 | Step 29900/37711 | Loss: 2.6407 | Avg: 2.9762
+Epoch 1/1 | Step 30000/37711 | Loss: 2.4564 | Avg: 2.9750
+Epoch 1/1 |step 30000/37711 | Loss: 2.4564 | Avg: 2.9750 | Val: 2.5114
+Epoch 1/1 | Step 30100/37711 | Loss: 2.3855 | Avg: 2.9739
+Epoch 1/1 | Step 30100/37711 | Loss: 2.3855 | Avg: 2.9739
+Epoch 1/1 | Step 30200/37711 | Loss: 2.6087 | Avg: 2.9728
+Epoch 1/1 | Step 30200/37711 | Loss: 2.6087 | Avg: 2.9728
+Epoch 1/1 | Step 30300/37711 | Loss: 2.5416 | Avg: 2.9716
+Epoch 1/1 | Step 30300/37711 | Loss: 2.5416 | Avg: 2.9716
+Epoch 1/1 | Step 30400/37711 | Loss: 2.4778 | Avg: 2.9706
+Epoch 1/1 | Step 30400/37711 | Loss: 2.4778 | Avg: 2.9706
+Epoch 1/1 | Step 30500/37711 | Loss: 2.5413 | Avg: 2.9695
+Epoch 1/1 |step 30500/37711 | Loss: 2.5413 | Avg: 2.9695 | Val: 2.5095
+Epoch 1/1 | Step 30600/37711 | Loss: 2.6277 | Avg: 2.9684
+Epoch 1/1 | Step 30600/37711 | Loss: 2.6277 | Avg: 2.9684
+Epoch 1/1 | Step 30700/37711 | Loss: 2.2935 | Avg: 2.9671
+Epoch 1/1 | Step 30700/37711 | Loss: 2.2935 | Avg: 2.9671
+Epoch 1/1 | Step 30800/37711 | Loss: 2.8219 | Avg: 2.9660
+Epoch 1/1 | Step 30800/37711 | Loss: 2.8219 | Avg: 2.9660
+Epoch 1/1 | Step 30900/37711 | Loss: 2.5955 | Avg: 2.9649
+Epoch 1/1 | Step 30900/37711 | Loss: 2.5955 | Avg: 2.9649
+Epoch 1/1 | Step 31000/37711 | Loss: 2.6403 | Avg: 2.9639
+Epoch 1/1 |step 31000/37711 | Loss: 2.6403 | Avg: 2.9639 | Val: 2.5042
+Epoch 1/1 | Step 31100/37711 | Loss: 2.6029 | Avg: 2.9628
+Epoch 1/1 | Step 31100/37711 | Loss: 2.6029 | Avg: 2.9628
+Epoch 1/1 | Step 31200/37711 | Loss: 2.4665 | Avg: 2.9618
+Epoch 1/1 | Step 31200/37711 | Loss: 2.4665 | Avg: 2.9618
+Epoch 1/1 | Step 31300/37711 | Loss: 2.6433 | Avg: 2.9608
+Epoch 1/1 | Step 31300/37711 | Loss: 2.6433 | Avg: 2.9608
+Epoch 1/1 | Step 31400/37711 | Loss: 2.8204 | Avg: 2.9597
+Epoch 1/1 | Step 31400/37711 | Loss: 2.8204 | Avg: 2.9597
+Epoch 1/1 | Step 31500/37711 | Loss: 2.6206 | Avg: 2.9587
+Epoch 1/1 |step 31500/37711 | Loss: 2.6206 | Avg: 2.9587 | Val: 2.5037
+Epoch 1/1 | Step 31600/37711 | Loss: 2.7306 | Avg: 2.9577
+Epoch 1/1 | Step 31600/37711 | Loss: 2.7306 | Avg: 2.9577
+Epoch 1/1 | Step 31700/37711 | Loss: 2.5766 | Avg: 2.9566
+Epoch 1/1 | Step 31700/37711 | Loss: 2.5766 | Avg: 2.9566
+Epoch 1/1 | Step 31800/37711 | Loss: 2.7215 | Avg: 2.9556
+Epoch 1/1 | Step 31800/37711 | Loss: 2.7215 | Avg: 2.9556
+Epoch 1/1 | Step 31900/37711 | Loss: 2.7248 | Avg: 2.9545
+Epoch 1/1 | Step 31900/37711 | Loss: 2.7248 | Avg: 2.9545
+Epoch 1/1 | Step 32000/37711 | Loss: 2.6890 | Avg: 2.9535
+Epoch 1/1 |step 32000/37711 | Loss: 2.6890 | Avg: 2.9535 | Val: 2.4992
+Epoch 1/1 | Step 32100/37711 | Loss: 2.6298 | Avg: 2.9525
+Epoch 1/1 | Step 32100/37711 | Loss: 2.6298 | Avg: 2.9525
+Epoch 1/1 | Step 32200/37711 | Loss: 2.7372 | Avg: 2.9515
+Epoch 1/1 | Step 32200/37711 | Loss: 2.7372 | Avg: 2.9515
+Epoch 1/1 | Step 32300/37711 | Loss: 2.4737 | Avg: 2.9505
+Epoch 1/1 | Step 32300/37711 | Loss: 2.4737 | Avg: 2.9505
+Epoch 1/1 | Step 32400/37711 | Loss: 2.3956 | Avg: 2.9495
+Epoch 1/1 | Step 32400/37711 | Loss: 2.3956 | Avg: 2.9495
+Epoch 1/1 | Step 32500/37711 | Loss: 2.8598 | Avg: 2.9485
+Epoch 1/1 |step 32500/37711 | Loss: 2.8598 | Avg: 2.9485 | Val: 2.4956
+Epoch 1/1 | Step 32600/37711 | Loss: 2.8480 | Avg: 2.9475
+Epoch 1/1 | Step 32600/37711 | Loss: 2.8480 | Avg: 2.9475
+Epoch 1/1 | Step 32700/37711 | Loss: 2.6176 | Avg: 2.9466
+Epoch 1/1 | Step 32700/37711 | Loss: 2.6176 | Avg: 2.9466
+Epoch 1/1 | Step 32800/37711 | Loss: 2.7678 | Avg: 2.9456
+Epoch 1/1 | Step 32800/37711 | Loss: 2.7678 | Avg: 2.9456
+Epoch 1/1 | Step 32900/37711 | Loss: 2.8104 | Avg: 2.9446
+Epoch 1/1 | Step 32900/37711 | Loss: 2.8104 | Avg: 2.9446
+Epoch 1/1 | Step 33000/37711 | Loss: 2.6074 | Avg: 2.9437
+Epoch 1/1 |step 33000/37711 | Loss: 2.6074 | Avg: 2.9437 | Val: 2.4931
+Epoch 1/1 | Step 33100/37711 | Loss: 2.7593 | Avg: 2.9427
+Epoch 1/1 | Step 33100/37711 | Loss: 2.7593 | Avg: 2.9427
+Epoch 1/1 | Step 33200/37711 | Loss: 2.4830 | Avg: 2.9418
+Epoch 1/1 | Step 33200/37711 | Loss: 2.4830 | Avg: 2.9418
+Epoch 1/1 | Step 33300/37711 | Loss: 2.5955 | Avg: 2.9408
+Epoch 1/1 | Step 33300/37711 | Loss: 2.5955 | Avg: 2.9408
+Epoch 1/1 | Step 33400/37711 | Loss: 2.5668 | Avg: 2.9398
+Epoch 1/1 | Step 33400/37711 | Loss: 2.5668 | Avg: 2.9398
+Epoch 1/1 | Step 33500/37711 | Loss: 2.7548 | Avg: 2.9388
+Epoch 1/1 |step 33500/37711 | Loss: 2.7548 | Avg: 2.9388 | Val: 2.4920
+Epoch 1/1 | Step 33600/37711 | Loss: 2.6510 | Avg: 2.9378
+Epoch 1/1 | Step 33600/37711 | Loss: 2.6510 | Avg: 2.9378
+Epoch 1/1 | Step 33700/37711 | Loss: 2.5531 | Avg: 2.9369
+Epoch 1/1 | Step 33700/37711 | Loss: 2.5531 | Avg: 2.9369
+Epoch 1/1 | Step 33800/37711 | Loss: 2.3870 | Avg: 2.9359
+Epoch 1/1 | Step 33800/37711 | Loss: 2.3870 | Avg: 2.9359
+Epoch 1/1 | Step 33900/37711 | Loss: 2.4538 | Avg: 2.9350
+Epoch 1/1 | Step 33900/37711 | Loss: 2.4538 | Avg: 2.9350
+Epoch 1/1 | Step 34000/37711 | Loss: 2.6578 | Avg: 2.9340
+Epoch 1/1 |step 34000/37711 | Loss: 2.6578 | Avg: 2.9340 | Val: 2.4871
+Epoch 1/1 | Step 34100/37711 | Loss: 2.9687 | Avg: 2.9331
+Epoch 1/1 | Step 34100/37711 | Loss: 2.9687 | Avg: 2.9331
+Epoch 1/1 | Step 34200/37711 | Loss: 2.7425 | Avg: 2.9322
+Epoch 1/1 | Step 34200/37711 | Loss: 2.7425 | Avg: 2.9322
+Epoch 1/1 | Step 34300/37711 | Loss: 2.6628 | Avg: 2.9313
+Epoch 1/1 | Step 34300/37711 | Loss: 2.6628 | Avg: 2.9313
+Epoch 1/1 | Step 34400/37711 | Loss: 2.4311 | Avg: 2.9304
+Epoch 1/1 | Step 34400/37711 | Loss: 2.4311 | Avg: 2.9304
+Epoch 1/1 | Step 34500/37711 | Loss: 2.7760 | Avg: 2.9295
+Epoch 1/1 |step 34500/37711 | Loss: 2.7760 | Avg: 2.9295 | Val: 2.4823
+Epoch 1/1 | Step 34600/37711 | Loss: 2.5994 | Avg: 2.9286
+Epoch 1/1 | Step 34600/37711 | Loss: 2.5994 | Avg: 2.9286
+Epoch 1/1 | Step 34700/37711 | Loss: 2.6674 | Avg: 2.9278
+Epoch 1/1 | Step 34700/37711 | Loss: 2.6674 | Avg: 2.9278
+Epoch 1/1 | Step 34800/37711 | Loss: 2.4898 | Avg: 2.9269
+Epoch 1/1 | Step 34800/37711 | Loss: 2.4898 | Avg: 2.9269
+Epoch 1/1 | Step 34900/37711 | Loss: 2.5633 | Avg: 2.9259
+Epoch 1/1 | Step 34900/37711 | Loss: 2.5633 | Avg: 2.9259
+Epoch 1/1 | Step 35000/37711 | Loss: 2.4707 | Avg: 2.9250
+Epoch 1/1 |step 35000/37711 | Loss: 2.4707 | Avg: 2.9250 | Val: 2.4832
+Epoch 1/1 | Step 35100/37711 | Loss: 2.8030 | Avg: 2.9242
+Epoch 1/1 | Step 35100/37711 | Loss: 2.8030 | Avg: 2.9242
+Epoch 1/1 | Step 35200/37711 | Loss: 2.5361 | Avg: 2.9233
+Epoch 1/1 | Step 35200/37711 | Loss: 2.5361 | Avg: 2.9233
+Epoch 1/1 | Step 35300/37711 | Loss: 2.5574 | Avg: 2.9224
+Epoch 1/1 | Step 35300/37711 | Loss: 2.5574 | Avg: 2.9224
+Epoch 1/1 | Step 35400/37711 | Loss: 2.5908 | Avg: 2.9215
+Epoch 1/1 | Step 35400/37711 | Loss: 2.5908 | Avg: 2.9215
+Epoch 1/1 | Step 35500/37711 | Loss: 2.6184 | Avg: 2.9206
+Epoch 1/1 |step 35500/37711 | Loss: 2.6184 | Avg: 2.9206 | Val: 2.4768
+Epoch 1/1 | Step 35600/37711 | Loss: 2.5869 | Avg: 2.9197
+Epoch 1/1 | Step 35600/37711 | Loss: 2.5869 | Avg: 2.9197
+Epoch 1/1 | Step 35700/37711 | Loss: 2.6977 | Avg: 2.9189
+Epoch 1/1 | Step 35700/37711 | Loss: 2.6977 | Avg: 2.9189
+Epoch 1/1 | Step 35800/37711 | Loss: 2.3313 | Avg: 2.9180
+Epoch 1/1 | Step 35800/37711 | Loss: 2.3313 | Avg: 2.9180
+Epoch 1/1 | Step 35900/37711 | Loss: 2.4678 | Avg: 2.9171
+Epoch 1/1 | Step 35900/37711 | Loss: 2.4678 | Avg: 2.9171
+Epoch 1/1 | Step 36000/37711 | Loss: 2.6651 | Avg: 2.9163
+Epoch 1/1 |step 36000/37711 | Loss: 2.6651 | Avg: 2.9163 | Val: 2.4743
+Epoch 1/1 | Step 36100/37711 | Loss: 2.6344 | Avg: 2.9154
+Epoch 1/1 | Step 36100/37711 | Loss: 2.6344 | Avg: 2.9154
+Epoch 1/1 | Step 36200/37711 | Loss: 2.5031 | Avg: 2.9145
+Epoch 1/1 | Step 36200/37711 | Loss: 2.5031 | Avg: 2.9145
+Epoch 1/1 | Step 36300/37711 | Loss: 2.7583 | Avg: 2.9136
+Epoch 1/1 | Step 36300/37711 | Loss: 2.7583 | Avg: 2.9136
+Epoch 1/1 | Step 36400/37711 | Loss: 2.3803 | Avg: 2.9127
+Epoch 1/1 | Step 36400/37711 | Loss: 2.3803 | Avg: 2.9127
+Epoch 1/1 | Step 36500/37711 | Loss: 2.6776 | Avg: 2.9119
+Epoch 1/1 |step 36500/37711 | Loss: 2.6776 | Avg: 2.9119 | Val: 2.4745
+Epoch 1/1 | Step 36600/37711 | Loss: 2.5861 | Avg: 2.9110
+Epoch 1/1 | Step 36600/37711 | Loss: 2.5861 | Avg: 2.9110
+Epoch 1/1 | Step 36700/37711 | Loss: 2.6379 | Avg: 2.9101
+Epoch 1/1 | Step 36700/37711 | Loss: 2.6379 | Avg: 2.9101
+Epoch 1/1 | Step 36800/37711 | Loss: 2.6136 | Avg: 2.9093
+Epoch 1/1 | Step 36800/37711 | Loss: 2.6136 | Avg: 2.9093
+Epoch 1/1 | Step 36900/37711 | Loss: 2.5884 | Avg: 2.9086
+Epoch 1/1 | Step 36900/37711 | Loss: 2.5884 | Avg: 2.9086
+Epoch 1/1 | Step 37000/37711 | Loss: 2.3495 | Avg: 2.9077
+Epoch 1/1 |step 37000/37711 | Loss: 2.3495 | Avg: 2.9077 | Val: 2.4713
+Epoch 1/1 | Step 37100/37711 | Loss: 2.7030 | Avg: 2.9069
+Epoch 1/1 | Step 37100/37711 | Loss: 2.7030 | Avg: 2.9069
+Epoch 1/1 | Step 37200/37711 | Loss: 2.5847 | Avg: 2.9060
+Epoch 1/1 | Step 37200/37711 | Loss: 2.5847 | Avg: 2.9060
+Epoch 1/1 | Step 37300/37711 | Loss: 2.7242 | Avg: 2.9052
+Epoch 1/1 | Step 37300/37711 | Loss: 2.7242 | Avg: 2.9052
+Epoch 1/1 | Step 37400/37711 | Loss: 2.6665 | Avg: 2.9044
+Epoch 1/1 | Step 37400/37711 | Loss: 2.6665 | Avg: 2.9044
+Epoch 1/1 | Step 37500/37711 | Loss: 2.4807 | Avg: 2.9035
+Epoch 1/1 |step 37500/37711 | Loss: 2.4807 | Avg: 2.9035 | Val: 2.4710
+Epoch 1/1 | Step 37600/37711 | Loss: 2.6109 | Avg: 2.9027
+Epoch 1/1 | Step 37600/37711 | Loss: 2.6109 | Avg: 2.9027
+Epoch 1/1 | Step 37700/37711 | Loss: 2.5859 | Avg: 2.9019
+Epoch 1/1 | Step 37700/37711 | Loss: 2.5859 | Avg: 2.9019
+Epoch 1 完成，平均 Loss: 2.9018
+how are you

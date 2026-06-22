@@ -1,0 +1,41 @@
+{
+  "os": "Linux-6.17.0-29-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.13.9",
+  "startedAt": "2026-06-15T03:24:40.960676Z",
+  "args": [
+    "--epochs",
+    "1",
+    "--max_steps",
+    "1000",
+    "--log_interval",
+    "100",
+    "--intermediate_size",
+    "1024",
+    "--use_wandb",
+    "--run_name",
+    "G1-ffn1024"
+  ],
+  "program": "/home/qiaohui/Project/minimind/trainer/train_pretrain.py",
+  "codePath": "trainer/train_pretrain.py",
+  "codePathLocal": "train_pretrain.py",
+  "git": {
+    "remote": "https://github.com/QiaohuiGao/minimind.git",
+    "commit": "3bd1ea951595638d9319999e462d1c6ef1ab1b83"
+  },
+  "email": "0721gqh@gmail.com",
+  "root": "/home/qiaohui/Project/minimind/trainer",
+  "host": "RTX-Pro-6000-Workstation",
+  "executable": "/home/qiaohui/Project/minimind/.venv/bin/python",
+  "cpu_count": 24,
+  "cpu_count_logical": 24,
+  "disk": {
+    "/": {
+      "total": "1006773899264",
+      "used": "195862491136"
+    }
+  },
+  "memory": {
+    "total": "100471746560"
+  },
+  "writerId": "xe407ls5c9ca874rzmclb7izsz134bfq"
+}

@@ -1,0 +1,90 @@
+_wandb:
+    value:
+        cli_version: 0.27.2
+        e:
+            3anuv2mp1wbvdi9w9kou7p20y6waeeac:
+                args:
+                    - evlaPrompt
+                codePath: model/Mymodel.py
+                codePathLocal: Mymodel.py
+                cpu_count: 24
+                cpu_count_logical: 24
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1006773899264"
+                        used: "196997025792"
+                email: 0721gqh@gmail.com
+                executable: /home/qiaohui/Project/minimind/.venv/bin/python
+                git:
+                    commit: 34e38cd82833f65d695fe3cdf1264f6a5abe2e1e
+                    remote: git@github.com:QiaohuiGao/minimind.git
+                gpu: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 24064
+                      memoryTotal: "102641958912"
+                      name: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+                      uuid: GPU-e552bcb2-68d9-6186-cf78-a3e18fda64ea
+                host: RTX-Pro-6000-Workstation
+                memory:
+                    total: "100467757056"
+                os: Linux-6.17.0-35-generic-x86_64-with-glibc2.39
+                program: /home/qiaohui/Project/minimind/model/Mymodel.py
+                python: CPython 3.13.9
+                root: /home/qiaohui/Project/minimind/model
+                startedAt: "2026-06-20T00:12:36.954951Z"
+                writerId: 3anuv2mp1wbvdi9w9kou7p20y6waeeac
+        m: []
+        python_version: 3.13.9
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 53
+                - 71
+            "2":
+                - 1
+                - 5
+                - 11
+                - 49
+                - 53
+                - 71
+            "3":
+                - 13
+                - 16
+                - 61
+            "4": 3.13.9
+            "5": 0.27.2
+            "6": 4.57.6
+            "12": 0.27.2
+            "13": linux-x86_64
+batch_size:
+    value: 32
+device:
+    value: cuda
+dropout:
+    value: 0.1
+epochs:
+    value: 1
+head_dim:
+    value: 64
+hidden_size:
+    value: 512
+intermediate_size:
+    value: 512
+learning_rate:
+    value: 0.0005
+max_seq_len:
+    value: 1024
+num_heads:
+    value: 4
+num_keyvalue_heads:
+    value: 2
+num_layers:
+    value: 6
+vocab_size:
+    value: 6400

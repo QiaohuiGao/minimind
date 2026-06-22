@@ -1,0 +1,9 @@
+Epoch 1/1 | Step 0/37711 | Loss: 8.8288 | Avg: 8.8288
+Traceback (most recent call last):
+  File "/home/qiaohui/Project/minimind/model/Mymodel.py", line 338, in <module>
+    TrainMyModel()
+    ~~~~~~~~~~~~^^
+  File "/home/qiaohui/Project/minimind/model/Mymodel.py", line 272, in TrainMyModel
+    val_total+=val_loss.item()
+               ~~~~~~~~~~~~~^^
+KeyboardInterrupt
