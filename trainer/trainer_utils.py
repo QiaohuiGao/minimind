@@ -42,12 +42,18 @@ def get_lr(current_step, total_steps, lr):
 
 
 def init_distributed_mode():
+    # RANK 由 torchrun 注入，表示当前进程的全局编号；不存在说明是单卡启动
     if int(os.environ.get("RANK", -1)) == -1:
-        return 0  # 非DDP模式
+        return 0  # 单卡模式，跳过所有 DDP 初始化
 
+    # 初始化进程组，让所有进程互相握手建立通信；阻塞直到所有进程都到达
+    # nccl 是 NVIDIA GPU 间通信库，比 CPU 的 gloo 快
     dist.init_process_group(backend="nccl")
+    # LOCAL_RANK 是本机内编号（区别于跨机器的全局 RANK）
     local_rank = int(os.environ["LOCAL_RANK"])
+    # 绑定当前进程到对应 GPU，否则所有进程默认挤在 cuda:0
     torch.cuda.set_device(local_rank)
+    # 返回给调用方用于判断主进程（local_rank==0 才打印/保存）
     return local_rank
 
 
