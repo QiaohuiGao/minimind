@@ -5,11 +5,13 @@
 1. 从零训练 MiniMind，按顺序需要哪些阶段？
 2. Pretrain 和 SFT 的 labels 有什么区别？
 3. 为什么 `ignore_index=-100` 是训练中的关键设计？
-4. GRPO 为什么不需要 critic？
-5. 蒸馏中的 CE 和 KL 分别学什么？
-6. checkpoint 为什么要保存 optimizer？
-7. 为什么训练 loss 不能替代生成评测？
-8. Tool call 能力在 MiniMind 中主要从哪里来？
+4. PPO 的 clip ratio 解决了什么问题？没有它会发生什么？
+5. PPO 需要 critic，GRPO 不需要——GRPO 用什么代替了 critic 的作用？
+6. DPO 为什么不需要 rollout 和 reward model？
+7. LoRA 的 A/B 矩阵初始化有什么要求？为什么 B 初始化为 0？
+8. 蒸馏中的 CE 和 KL 分别学什么？
+9. checkpoint 为什么要保存 optimizer？
+10. 为什么训练 loss 不能替代生成评测？
 
 ## B. 代码定位题
 

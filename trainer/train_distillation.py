@@ -21,25 +21,73 @@ from trainer.trainer_utils import get_lr, Logger, is_main_process, lm_checkpoint
 
 warnings.filterwarnings('ignore')
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  Knowledge Distillation 整体架构协作关系
+#
+#  训练脚本 (train_distillation.py)
+#    ├── SFTDataset               数据层：与 Full SFT/LoRA 相同（对话格式 + loss mask）
+#    ├── DataLoader               批处理
+#    ├── Teacher Model（frozen）  大模型（如 MoE 版 / 更多层数）
+#    │     └── 只做 forward，输出 soft label（每个 token 的概率分布）
+#    │         requires_grad=False，永远不更新
+#    ├── Student Model（训练）    小模型（如 dense 版 / 更少层数）
+#    │     └── 全参数可训练（和 Full SFT 相同）
+#    ├── distillation_loss()      核心：KL divergence（Student 分布 vs Teacher 分布）
+#    │     temperature T > 1 → 拉平分布 → 小概率 token 信号更明显 → 知识传递更充分
+#    │     loss *= T² → 补偿梯度因除以 T 而缩小的量级
+#    ├── AdamW optimizer          只优化 Student 参数
+#    └── lm_checkpoint            只保存 Student 权重
+#
+#  数据流（一个 step）：
+#    input_ids [B, S]
+#      ├──→ Teacher.forward (no_grad) ──→ teacher_logits [B, S, vocab]
+#      └──→ Student.forward           ──→ student_logits [B, S, vocab]
+#
+#    loss_mask = (labels != -100)     只在 assistant token 位置计算两种 loss
+#
+#    CE loss    = CrossEntropy(student_logits, true_labels)     硬标签：学"对不对"
+#    KL loss    = KLDiv(student/T, teacher/T) * T²              软标签：学"Teacher 怎么想"
+#    total_loss = alpha * CE + (1-alpha) * KL
+#                 ↑ alpha=1 → 纯 SFT；alpha=0 → 纯蒸馏；alpha=0.5 → 各一半
+#
+#  [与 Pretrain/SFT/LoRA 的核心区别]：
+#    同时加载两个模型（其他三种只有一个模型）
+#    loss 由两部分组成（其他三种只有 CE loss）
+#    目标是压缩模型能力（其他三种目标是学习新知识或对齐行为）
+#
+#  minimind 默认用法：MoE 大模型（Teacher）蒸馏 dense 小模型（Student）
+#    Teacher 推理成本高但能力强 → Student 推理成本低但接近 Teacher 能力
+# ═══════════════════════════════════════════════════════════════════════════
+
 
 def distillation_loss(student_logits, teacher_logits, temperature=1.0, reduction='batchmean'):
+    # Teacher 的 logits 转成概率分布（soft label）
+    # temperature > 1 会把分布"拉平"，让小概率 token 的信号更明显，知识更容易传递
+    # detach() 确保梯度不会流向 Teacher（Teacher 永远不更新）
     with torch.no_grad():
         teacher_probs = F.softmax(teacher_logits / temperature, dim=-1).detach()
 
+    # Student 的 logits 转成 log 概率（KL divergence 的公式要求）
     student_log_probs = F.log_softmax(student_logits / temperature, dim=-1)
 
+    # KL divergence：衡量 Student 分布 和 Teacher 分布 的差距
+    # KL(P||Q) = Σ P * log(P/Q)，这里 P=Teacher，Q=Student
+    # 目标：让 Student 的分布尽量靠近 Teacher 的分布
     kl = F.kl_div(
         student_log_probs,
         teacher_probs,
         reduction=reduction
     )
+    # temperature**2 是数学上的补偿项
+    # 除以 T 会让 logits 变小，梯度也等比例缩小，乘回 T² 保持梯度量级不变
     return (temperature ** 2) * kl
 
 
 def train_epoch(epoch, loader, iters, teacher_model, lm_config_student, start_step=0, wandb=None, alpha=0.0, temperature=1.0):
     start_time = time.time()
     last_step = start_step
-    
+
+    # Teacher 全程 eval + 关闭梯度，只负责输出 soft label，不参与训练
     if teacher_model is not None:
         teacher_model.eval()
         teacher_model.requires_grad_(False)
@@ -48,39 +96,45 @@ def train_epoch(epoch, loader, iters, teacher_model, lm_config_student, start_st
         last_step = step
         input_ids = input_ids.to(args.device)
         labels = labels.to(args.device)
+        # [与 SFT 相同] loss_mask 标记 assistant 部分（labels != -100 的位置）
+        # 蒸馏也只在 assistant token 上学 Teacher，不学 user prompt 部分
         loss_mask = (labels[..., 1:] != -100).float()
         lr = get_lr(epoch * iters + step, args.epochs * iters, args.learning_rate)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
-        # 前向传播（学生模型）
+        # Student 正常前向，有梯度（需要 backward 更新参数）
         with autocast_ctx:
             res = model(input_ids)
-            student_logits = res.logits[..., :-1, :].contiguous()
+            student_logits = res.logits[..., :-1, :].contiguous()  # 去掉最后一个位置（预测时对齐）
 
-        # 教师模型前向传播（只在eval & no_grad）
+        # Teacher 前向，no_grad（只取 logits，不算梯度，节省显存）
         if teacher_model is not None:
             with torch.no_grad():
                 teacher_logits = teacher_model(input_ids).logits[..., :-1, :].contiguous()
+                # Teacher 和 Student 的 vocab_size 可能不同（大模型 vocab 更大）
+                # 截断到 Student 的 vocab_size，保持维度一致
                 vocab_size_student = student_logits.size(-1)
                 teacher_logits = teacher_logits[..., :vocab_size_student]
 
         # ========== 计算损失 ==========
-        # 1) Ground-Truth CE Loss
+        # 1) Hard label loss（CE Loss）：和真实答案对比，学"对不对"
         shift_labels = labels[..., 1:].contiguous()
         loss_mask_flat = loss_mask.view(-1)
         ce_loss = F.cross_entropy(
             student_logits.view(-1, student_logits.size(-1)),
             shift_labels.view(-1),
             ignore_index=-100,
-            reduction='none'
+            reduction='none'  # 逐 token 算，后面手动用 mask 加权
         )
+        # 只对 assistant 部分的 token 平均（分母加 1e-8 防止除零）
         ce_loss_raw = torch.sum(ce_loss * loss_mask_flat) / (loss_mask_flat.sum() + 1e-8)
         if lm_config_student.use_moe: ce_loss = ce_loss_raw + res.aux_loss
         else: ce_loss = ce_loss_raw
 
-        # 2) Distillation Loss
+        # 2) Soft label loss（Distillation Loss）：和 Teacher 分布对比，学"Teacher 怎么想"
         if teacher_model is not None:
+            # 只在 loss_mask==1 的位置（assistant token）做蒸馏，和 CE loss 对齐
             distill_loss = distillation_loss(
                 student_logits.view(-1, student_logits.size(-1))[loss_mask_flat == 1],
                 teacher_logits.view(-1, teacher_logits.size(-1))[loss_mask_flat == 1],
@@ -89,7 +143,8 @@ def train_epoch(epoch, loader, iters, teacher_model, lm_config_student, start_st
         else:
             distill_loss = torch.tensor(0.0, device=args.device)
 
-        # 3) 总损失 = alpha * CE + (1-alpha) * Distill
+        # 3) 总损失 = alpha * CE（硬标签）+ (1-alpha) * KL（软标签）
+        # alpha=1.0 → 纯 SFT，alpha=0.0 → 纯蒸馏，alpha=0.5 → 各一半（默认）
         loss = (alpha * ce_loss + (1 - alpha) * distill_loss) / args.accumulation_steps
 
         scaler.scale(loss).backward()
@@ -202,15 +257,21 @@ if __name__ == "__main__":
         wandb.init(project=args.wandb_project, name=wandb_run_name, id=wandb_id, resume=resume)
     
     # ========== 5. 定义学生和教师模型 ==========
+    # [与 SFT/LoRA 最大的区别] 同时加载两个模型：
+    #   Student = 待训练的小模型（全参数可训练，和 full_sft 一样）
+    #   Teacher = 更大/更强的冻结模型（只做 inference，提供 soft label）
     model, tokenizer = init_model(lm_config_student, args.from_student_weight, device=args.device)
     Logger(f'学生模型总参数量：{sum(p.numel() for p in model.parameters()) / 1e6:.3f} M')
     teacher_model, _ = init_model(lm_config_teacher, args.from_teacher_weight, device=args.device)
+    # Teacher 全程冻结，永远不更新
     teacher_model.eval()
     teacher_model.requires_grad_(False)
     Logger(f'教师模型总参数量：{sum(p.numel() for p in teacher_model.parameters()) / 1e6:.3f} M')
+    # [与 SFT 相同] 数据格式完全一样，都用 SFTDataset
     train_ds = SFTDataset(args.data_path, tokenizer, max_length=args.max_seq_len)
     train_sampler = DistributedSampler(train_ds) if dist.is_initialized() else None
     scaler = torch.cuda.amp.GradScaler(enabled=(args.dtype == 'float16'))
+    # [与 LoRA 不同] optimizer 传 model.parameters()（Student 全参数），不是只传 lora_params
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
     
     # ========== 6. 从ckp恢复状态 ==========

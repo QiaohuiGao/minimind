@@ -69,23 +69,33 @@ def apply_lora(model, rank=16):
 # ════════════════════════════════════════════════════════════════════════════════
 def load_lora(model, path):
     """加载 LoRA 权重（只有 A 和 B 矩阵，很小）"""
+    # 从 .pth 文件读出完整 state_dict，key=参数名，value=tensor
     state_dict = torch.load(path, map_location=model.device)
-    # 去掉 DDP 的 'module.' 前缀
+    # DDP 多卡保存的 key 带 'module.' 前缀，单卡加载时去掉（k[7:] 跳过前7个字符）
     state_dict = {(k[7:] if k.startswith('module.') else k): v for k, v in state_dict.items()}
 
     for name, module in model.named_modules():
+        # 只处理被 apply_lora() 挂上了 .lora 属性的层
         if hasattr(module, 'lora'):
+            # 筛出属于本层的 key，并截短成 LoRA 内部 key（如 "A.weight"）
+            # 原始: "model.layers.0.self_attn.q_proj.lora.A.weight" → 截短: "A.weight"
             lora_state = {k.replace(f'{name}.lora.', ''): v for k, v in state_dict.items() if f'{name}.lora.' in k}
+            # 将 A、B 矩阵权重加载进 LoRA 对象
             module.lora.load_state_dict(lora_state)
 
 
 def save_lora(model, path):
     """只保存 LoRA 权重（不保存原模型权重，所以文件很小）"""
+    # torch.compile 会把模型包一层 _orig_mod，取回原始模型
     raw_model = getattr(model, '_orig_mod', model)
     state_dict = {}
     for name, module in raw_model.named_modules():
+        # 只收集有 LoRA 的层
         if hasattr(module, 'lora'):
+            # 去掉 DDP 的 'module.' 前缀，保持和 load_lora 一致的 key 格式
             clean_name = name[7:] if name.startswith("module.") else name
+            # key 格式: "model.layers.0.self_attn.q_proj.lora.A.weight"
+            # v.cpu().half(): 转到 CPU + float16，减小文件体积
             lora_state = {f'{clean_name}.lora.{k}': v.cpu().half() for k, v in module.lora.state_dict().items()}
             state_dict.update(lora_state)
     torch.save(state_dict, path)
@@ -93,13 +103,17 @@ def save_lora(model, path):
 
 def merge_lora(model, lora_path, save_path):
     """合并 LoRA 到原模型: W' = W + B×A，合并后不再需要 LoRA 模块"""
+    # 先把 A、B 权重装进模型
     load_lora(model, lora_path)
     raw_model = getattr(model, '_orig_mod', model)
+    # 取出所有基础权重，排除 LoRA 的 A、B 参数（它们会被合并进去，不需要单独保存）
     state_dict = {k: v.cpu().half() for k, v in raw_model.state_dict().items() if '.lora.' not in k}
     for name, module in raw_model.named_modules():
+        # '.lora.' not in name: 跳过 LoRA 内部的 Linear（A、B 本身也是 nn.Linear，不能当目标层）
         if isinstance(module, nn.Linear) and '.lora.' not in name:
+            # 先复制基础权重
             state_dict[f'{name}.weight'] = module.weight.data.clone().cpu().half()
             if hasattr(module, 'lora'):
-                # 关键一步: W' = W + B × A (矩阵乘法合并)
+                # 关键一步: W' = W + B × A，把低秩增量永久加进权重，推理时零额外开销
                 state_dict[f'{name}.weight'] += (module.lora.B.weight.data @ module.lora.A.weight.data).cpu().half()
     torch.save(state_dict, save_path)

@@ -1,4 +1,39 @@
-# Day 6 Deep Dive: GRPO/CISPO 与蒸馏
+# Day 6 Deep Dive: DPO + GRPO/CISPO 与蒸馏
+
+## 深挖问题 0：DPO 的 loss 是怎么算的？
+
+打开 `trainer/train_dpo.py`，找到 loss 计算部分。
+
+**核心逻辑：**
+
+```python
+# 对 chosen 和 rejected 分别计算 log prob
+chosen_logps   = get_per_token_logps(model, chosen_ids)      # 当前 policy
+rejected_logps = get_per_token_logps(model, rejected_ids)
+
+ref_chosen_logps   = get_per_token_logps(ref_model, chosen_ids)   # reference
+ref_rejected_logps = get_per_token_logps(ref_model, rejected_ids)
+
+# log ratio（policy 相对于 reference 的变化）
+pi_ratio_chosen   = chosen_logps   - ref_chosen_logps
+pi_ratio_rejected = rejected_logps - ref_rejected_logps
+
+# DPO loss
+loss = -F.logsigmoid(beta * (pi_ratio_chosen - pi_ratio_rejected)).mean()
+```
+
+**注意：**
+- log prob 只算 response 部分（assistant token），和 SFT 一样 mask 掉 prompt。
+- reference model 用 `torch.no_grad()`，不更新。
+- chosen margin = pi_ratio_chosen - pi_ratio_rejected，训练过程中这个值应该上升。
+
+**为什么叫 "Direct" Preference Optimization？**
+
+PPO 的路径：preference → train reward model → RL 优化 policy（需要 rollout + critic）
+
+DPO 的路径：preference → 直接优化 policy（一个 loss 搞定，不需要 RL 基础设施）
+
+---
 
 ## 深挖问题 1：GRPO 的训练主线是什么？
 

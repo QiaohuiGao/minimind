@@ -1,4 +1,41 @@
-# Day 7 Deep Dive: 把 MiniMind 训练链路串起来
+# Day 7 Deep Dive: PPO 实现 + 把 MiniMind 训练链路串起来
+
+## 深挖问题 0：PPO 训练循环长什么样？
+
+打开 `trainer/train_ppo.py` 和 `trainer/rollout_engine.py`。
+
+**PPO 每个 iteration 分两个阶段：**
+
+```
+Phase 1 - Rollout（不更新参数）：
+  for each prompt in batch:
+    response = model.generate(prompt)        ← 当前 policy 生成
+    reward = reward_model(response)          ← 打分
+    old_logp = model.log_prob(response)      ← 记录旧的 log prob
+    value = critic(response)                 ← 记录 value 估计
+  → 得到 rollout buffer: (prompt, response, reward, old_logp, value)
+
+Phase 2 - Update（多轮更新参数）：
+  for each mini-batch from rollout buffer:
+    new_logp = model.log_prob(response)      ← 新 policy 的 log prob
+    ratio = exp(new_logp - old_logp)         ← policy 变化比
+    advantage = reward - value               ← 超出预期的部分
+    policy_loss = -min(ratio*A, clip(ratio)*A)
+    value_loss = MSE(critic(s), reward)
+    total_loss = policy_loss + 0.5*value_loss + entropy_bonus
+```
+
+**和 GRPO 的对比：**
+
+GRPO 把 Phase 1 的 `value = critic(response)` 替换成：
+```python
+group_rewards = rewards.view(-1, num_generations)   # 同 prompt 的多个回答
+advantage = (reward - group_mean) / group_std        ← 不需要 critic
+```
+
+这就是为什么 GRPO 更简单——省掉了 critic 网络和 value loss。
+
+---
 
 ## 总链路
 
@@ -7,7 +44,7 @@ Tokenizer
 -> Pretrain
 -> SFT
 -> Evaluation
--> Optional: Distillation / DPO / PPO / GRPO / Agent RL
+-> Optional: LoRA / Distillation / DPO / PPO / GRPO / Agent RL
 -> Convert / Serve / Web Demo
 ```
 

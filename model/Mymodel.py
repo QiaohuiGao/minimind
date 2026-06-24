@@ -36,9 +36,11 @@ class MyModelDataset(Dataset):
         self.dataset = []
         self.tokenizer = tokenizer
         self.max_len = max_len
-        with open(data_path, 'r') as f:
-            for line in f:
-                self.dataset.append(json.loads(line))
+        # with open(data_path, 'r') as f:
+        #     for line in f:
+        #         self.dataset.append(json.loads(line))
+        self.samples = load_dataset('json', data_files=data_path, split='train')
+            
 
     def __len__(self):
         return len(self.dataset)
@@ -60,11 +62,12 @@ class MyModelDataset(Dataset):
         labels[input_ids == self.tokenizer.pad_token_id] = -100
         return input_ids, labels
 
-def pre_processing_chat(conversations,add_system_ratio=0.2):
-    ## tool call 数据包含 tools 字段，格式特殊，不做任何修改直接透传
-    if any(conv.get('tools')for conv in conversations):return conversations
-    
-    SYSTEM_PROMPTS=[
+
+def pre_processing_chat(conversations, add_system_ratio=0.2):
+    # tool call 数据结构特殊，不做任何修改直接透传
+    if any(conv.get('tools') for conv in conversations):
+        return conversations
+    SYSTEM_PROMPTS = [
         "你是一个知识丰富的AI，尽力为用户提供准确的信息。",
         "你是minimind，一个小巧但有用的语言模型。",
         "你是一个专业的AI助手，请提供有价值的回答。",
@@ -76,78 +79,88 @@ def pre_processing_chat(conversations,add_system_ratio=0.2):
         "You are a knowledgeable AI. Try your best to provide accurate information.",
         "You are minimind, a small but useful language model."
     ]
-    
-    if conversations[0].get("role")!="system":
-        if random.random()>add_system_ratio:#random.random()是在0-1之间随机取一个数
-            return [{"role":"system","content":random.choice(SYSTEM_PROMPTS)}]+conversations #random.choice()是在序列中取一个数
+    if conversations[0].get("role") != "system":
+        if random.random() > add_system_ratio:
+            return [{"role": "system", "content": random.choice(SYSTEM_PROMPTS)}] + conversations
     return conversations
-          
+
+
 def post_processing_chat(prompt_content, empty_think_ratio=0.2):
-    # apply_chat_template 渲染 reasoning 数据时，没有思考内容的 assistant 回答会带上空 <think> 标签
-    # 80% 概率移除，避免模型学到"空思考"这种无意义行为；保留 20% 让模型知道可以不思考
+    # 80% 概率移除空 <think> 标签，避免模型学到无意义的空思考行为
     if "<think>\n\n</think>\n\n" in prompt_content and random.random() > empty_think_ratio:
-        prompt_content=prompt_content.replace("<think>\n\n</think>\n\n","")
+        prompt_content = prompt_content.replace("<think>\n\n</think>\n\n", "")
     return prompt_content
-    
+
+
 class MyModelSFTDataset(Dataset):
-    def __init__(self,jsonl_path,tokenizer,max_len=1024):
+    def __init__(self, jsonl_path, tokenizer, max_len=1024):
         super().__init__()
-        self.tokenizer=tokenizer
-        self.max_len=max_len
-        features=Features({"conversations":[{"role":Value("string"),"content":Value("string"),"reasoning_content":Value("string"),"tool_calls":Value("string")}]})
-        self.samples=load_dataset("json",data_files=jsonl_path, split="train",features=features)
-        self.bos_ids=tokenizer(f"{tokenizer.bos_token}assistant\n",add_special_tokens=False).input_ids
-        self.eos_ids=tokenizer(f"{tokenizer.eos_token}\n",add_special_tokens=False).input_ids
-        
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+        features = Features({
+            "conversations": [{
+                "role": Value("string"),
+                "content": Value("string"),
+                "reasoning_content": Value("string"),
+                "tool_calls": Value("string")
+            }]
+        })
+        self.samples = load_dataset("json", data_files=jsonl_path, split="train", features=features)
+        # 用于 generate_labels 定位 assistant 回答的起止位置
+        self.bos_ids = tokenizer(f"{tokenizer.bos_token}assistant\n", add_special_tokens=False).input_ids
+        self.eos_ids = tokenizer(f"{tokenizer.eos_token}\n", add_special_tokens=False).input_ids
+
     def __len__(self):
         return len(self.samples)
-    
-    def create_chat_prompt(self,conversations):
-        messages=[]
-        tools=None
-        for message in conversations:
-            message=dict(message)
-            if message.get("role")=="system" and message.get("tools"):# let tools equal real tools in conversation.
-                tools=json.loads(message["tools"]) if isinstance(message["tools"],str) else message["tools"]
-                
-            if message.get("tool_calls") and isinstance("tool_calls",str):
-                message["tool_calls"]=json.loads(message["tool_calls"])
 
+    def create_chat_prompt(self, conversations):
+        messages = []
+        tools = None
+        for message in conversations:
+            message = dict(message)
+            # 从 system 消息里提取 tools 字段（JSON 字符串 → Python list）
+            if message.get("role") == "system" and message.get("tools"):
+                tools = json.loads(message["tools"]) if isinstance(message["tools"], str) else message["tools"]
+            # tool_calls 同样从 JSON 字符串转成 Python list
+            if message.get("tool_calls") and isinstance(message["tool_calls"], str):
+                message["tool_calls"] = json.loads(message["tool_calls"])
             messages.append(message)
-        return self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False, tools=tools)
-    
+        return self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=False, tools=tools
+        )
+
     def generate_labels(self, input_ids):
-        labels=[-100]*len(input_ids)
-        i=0
-        while i<len(input_ids):
-            if input_ids[i:i+len(self.bos_ids)]==self.bos_ids:
-                start=i+len(self.bos_ids)#从开始的token之后开始
-                end=start
-                
-                while end<len(input_ids):#find the end
-                    if input_ids[end:end+len(self.eos_ids)]==self.eos_ids:
-                        break#已经到结尾
-                    end+=1
-                
-                for j in range(start,min(end+len(self.eos_ids),self.max_len)):
-                    labels[j]=input_ids[j] # give it real ids instead of -100
-                i=end+len(self.eos_ids) if end <len(input_ids) else len(input_ids)
-                
+        # 全部初始化为 -100（不参与 loss）
+        labels = [-100] * len(input_ids)
+        i = 0
+        while i < len(input_ids):
+            # 找到 <bos>assistant\n 的起始位置
+            if input_ids[i: i + len(self.bos_ids)] == self.bos_ids:
+                start = i + len(self.bos_ids)
+                end = start
+                # 找对应的 <eos>\n 结束位置
+                while end < len(input_ids):
+                    if input_ids[end: end + len(self.eos_ids)] == self.eos_ids:
+                        break
+                    end += 1
+                # 把 assistant 回答部分（含 eos）的 label 设为真实 token id
+                for j in range(start, min(end + len(self.eos_ids), self.max_len)):
+                    labels[j] = input_ids[j]
+                i = end + len(self.eos_ids) if end < len(input_ids) else len(input_ids)
             else:
-                i+=1
+                i += 1
         return labels
-    
+
     def __getitem__(self, index):
-        sample=self.samples[index]
-        # 20% 概率随机插入 system prompt，增加数据多样性
-        conversations=pre_processing_chat(sample['conversations'])
-        prompt=self.create_chat_prompt(conversations)
-        prompt=post_processing_chat(prompt)
-        input_ids=self.tokenizer(prompt).input_ids[:self.max_len]
-        labels = self.generate_labels(input_ids)      
-        return torch.tensor(input_ids, dtype=torch.long), torch.tensor(labels, dtype=torch.long)      
-                
-                
+        sample = self.samples[index]
+        conversations = pre_processing_chat(sample["conversations"])
+        prompt = self.create_chat_prompt(conversations)
+        prompt = post_processing_chat(prompt)
+        input_ids = self.tokenizer(prompt, add_special_tokens=False).input_ids[:self.max_len]
+        labels = self.generate_labels(input_ids)
+        return torch.tensor(input_ids, dtype=torch.long), torch.tensor(labels, dtype=torch.long)
+
+
 def repeat_kv(x, n_rep):
     if n_rep == 1:
         return x
@@ -162,6 +175,7 @@ def precompute_rope_freqs(head_dim, max_seq_len, base=10000.0):
     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)
     return freqs_cis
 
+#sftdataset: conversations->rule out tools/tool calls,add system prompt to make it be sensitive to system requirements, and sperate the assistant answer
 
 def apply_rope(x, freqs_cis):
     B, H, S, D = x.shape
@@ -328,6 +342,7 @@ def TrainMyModel():
     dataloader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=8)
     val_dataloader=DataLoader(eval_data,batch_size=config.batch_size, shuffle=False, num_workers=8)
     model = MyModel(config).to(config.device)
+    
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
 
     model.train()
@@ -399,79 +414,12 @@ def TrainMyModel():
     print(tokenizer.decode(generated_ids, skip_special_tokens=True))
     wandb.finish()
 
-def TrainSFT():
-    # SFT 关键差异：更低的 lr（避免破坏 pretrain 学到的知识）+ 从 pretrain checkpoint 出发
-    config = Config(learning_rate=1e-5, epochs=2)
-
-    wandb.init(
-        project="mymodel-sft",
-        name=f"sft-lr{config.learning_rate}-maxlen{config.max_seq_len}",
-        config=vars(config)
-    )
-
-    tokenizer = AutoTokenizer.from_pretrained(os.path.dirname(__file__))
-    dataset = MyModelSFTDataset("../dataset/sft_t2t_mini.jsonl", tokenizer, max_len=config.max_seq_len)
-
-    val_size = int(len(dataset) * 0.05)
-    train_size = len(dataset) - val_size
-    train_data, eval_data = torch.utils.data.random_split(dataset, [train_size, val_size])
-
-    dataloader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=8)
-    val_dataloader = DataLoader(eval_data, batch_size=config.batch_size, shuffle=False, num_workers=8)
-
-    # 从 pretrain checkpoint 加载权重，而不是随机初始化
-    model = MyModel(config).to(config.device)
-    pretrain_path = os.path.join(os.path.dirname(__file__), "my_model.pt")
-    model.load_state_dict(torch.load(pretrain_path, map_location=config.device))
-
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
-
-    model.train()
-    for epoch in range(config.epochs):
-        total_loss = 0
-        for step, (input_ids, labels) in enumerate(dataloader):
-            input_ids = input_ids.to(config.device)
-            labels = labels.to(config.device)
-
-            _, loss, _ = model(input_ids, labels)
-
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-
-            total_loss += loss.item()
-
-            if step % 100 == 0:
-                avg_loss = total_loss / (step + 1)
-                print(f"Epoch {epoch+1}/{config.epochs} | Step {step}/{len(dataloader)} | Loss: {loss.item():.4f} | Avg: {avg_loss:.4f}")
-                wandb.log({"train_loss": loss.item(), "avg_loss": avg_loss}, step=step)
-
-            if step % 500 == 0:
-                model.eval()
-                val_total = 0
-                with torch.no_grad():
-                    for eval_ids, eval_labels in val_dataloader:
-                        eval_ids = eval_ids.to(config.device)
-                        eval_labels = eval_labels.to(config.device)
-                        _, val_loss, _ = model(eval_ids, eval_labels)
-                        val_total += val_loss.item()
-                val_avg = val_total / len(val_dataloader)
-                model.train()
-                print(f"  >> Val Loss: {val_avg:.4f}")
-                wandb.log({"val_loss": val_avg}, step=step)
-
-        print(f"Epoch {epoch+1} 完成，平均 Loss: {total_loss / len(dataloader):.4f}")
-
-    save_path = os.path.join(os.path.dirname(__file__), "my_model_sft.pt")
-    torch.save(model.state_dict(), save_path)
-    print(f"SFT 权重已保存至 {save_path}")
-    wandb.finish()
-
 
 def evalPrompt():
     config = Config()
     model = MyModel(config).to(config.device)
+    #加入pretrain的参数，先找绝对路径，然后再放weights
+
     save_path = os.path.join(os.path.dirname(__file__), "my_model.pt")
     model.load_state_dict(torch.load(save_path, map_location=config.device))
     model.eval()

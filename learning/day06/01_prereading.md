@@ -1,10 +1,64 @@
-# Day 6 Prereading: 蒸馏与 GRPO/CISPO 后训练
+# Day 6 Prereading: DPO + 蒸馏与 GRPO/CISPO 后训练
 
 ## 今日目标
 
-今天选择一个后训练方向深入：白盒蒸馏或 GRPO/CISPO。推荐优先读 GRPO，因为你当前打开的是 `train_grpo.py`，但如果 reward model 没准备好，可以把实跑换成蒸馏代码理解。
+今天覆盖三个后训练方向：DPO（alignment 入门首选）、蒸馏（知识迁移）、GRPO（RL 对齐）。推荐按顺序先理解 DPO 再看 GRPO，因为 DPO 是最简单的 alignment 算法，理解它能让 GRPO 的设计动机更清晰。
 
-## 必须掌握的基础概念
+---
+
+## Part 1：DPO（Direct Preference Optimization）
+
+### 必须掌握的基础概念
+
+- Preference data：每条样本是 (prompt, chosen_response, rejected_response) 三元组。
+- Reference model（π_ref）：冻结的 SFT 模型，防止 policy 偏离太远。
+- DPO loss：不需要 reward model，直接从 preference 对中推导 policy 更新方向。
+- β 参数：控制 policy 偏离 reference 的幅度，越大越保守。
+- Implicit reward：DPO 本质上仍是 RL，只是把 reward 和 policy 优化合并成一个闭合形式解。
+
+**DPO loss 公式：**
+
+```
+L = -log σ( β × (log π(chosen|x)/π_ref(chosen|x) - log π(rejected|x)/π_ref(rejected|x)) )
+```
+
+直觉：chosen 的 log prob 相对 ref 提高，rejected 的相对降低，两者差距越大 loss 越低。
+
+### 面试考点
+
+- DPO 为什么不需要 reward model 和 rollout？
+- DPO 和 PPO 本质上的区别是什么？
+- reference model 在 DPO 里扮演什么角色？
+- β 太小或太大分别有什么问题？
+- DPO 的数据要求和 SFT 有什么不同？
+
+### 工业要求
+
+- DPO 数据质量比数量重要：chosen 和 rejected 的差距要明显。
+- 训练前必须跑 SFT 得到 base model，DPO 在 SFT 基础上做。
+- 监控指标：chosen reward margin（chosen - rejected log ratio 差）。
+- β 通常取 0.1~0.5，太大不收敛，太小 policy 会 collapse 到 reference。
+
+### 项目中要看的文件
+
+- `trainer/train_dpo.py`
+- `dataset/lm_dataset.py`（DPO 数据集部分）
+
+### 今日推荐命令
+
+```bash
+python trainer/train_dpo.py \
+  --hidden_size 768 \
+  --from_weight full_sft \
+  --epochs 1 \
+  --learning_rate 1e-5
+```
+
+---
+
+## Part 2：蒸馏与 GRPO/CISPO
+
+### 必须掌握的基础概念
 
 ### 蒸馏
 

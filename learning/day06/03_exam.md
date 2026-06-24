@@ -1,6 +1,14 @@
 # Day 6 Exam
 
-## A. GRPO 代码阅读题
+## A. DPO 理解题
+
+1. `train_dpo.py` 中 chosen 和 rejected 的 log prob 各怎么算？只算哪些 token？
+2. reference model 为什么要 `torch.no_grad()`？它的权重会更新吗？
+3. DPO loss 中 β=0.1 和 β=1.0 有什么区别？对训练行为有什么影响？
+4. chosen margin（pi_ratio_chosen - pi_ratio_rejected）训练中应该朝什么方向变化？为什么？
+5. DPO 和 GRPO 各自需要哪些数据？数据格式有什么不同？
+
+## B. GRPO 代码阅读题
 
 1. `rollout_engine.rollout` 返回哪些字段？每个字段用于什么？
 2. `old_per_token_logps` 和 `per_token_logps` 有什么区别？

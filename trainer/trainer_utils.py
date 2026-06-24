@@ -67,19 +67,29 @@ def setup_seed(seed: int):
     torch.backends.cudnn.benchmark = False
 
 def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoch=0, step=0, wandb=None, save_dir='../checkpoints', **kwargs):
+    # 统一创建保存目录，并根据模型规模 / MoE 配置生成固定文件名
+    save_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), save_dir))
     os.makedirs(save_dir, exist_ok=True)
     moe_path = '_moe' if lm_config.use_moe else ''
     ckp_path = f'{save_dir}/{weight}_{lm_config.hidden_size}{moe_path}.pth'
     resume_path = f'{save_dir}/{weight}_{lm_config.hidden_size}{moe_path}_resume.pth'
 
+    # 传入 model 表示保存模式；不传 model 表示加载 resume checkpoint
     if model is not None:
+        # DDP 会把真实模型包在 .module 里；torch.compile 可能再包一层 _orig_mod
         raw_model = model.module if isinstance(model, DistributedDataParallel) else model
         raw_model = getattr(raw_model, '_orig_mod', raw_model)
         state_dict = raw_model.state_dict()
+
+        # 推理权重只保留 fp16 + CPU tensor，减小磁盘占用并释放显存引用
         state_dict = {k: v.half().cpu() for k, v in state_dict.items()}
+
+        # 先写临时文件再原子替换，避免中途崩溃留下半个 checkpoint
         ckp_tmp = ckp_path + '.tmp'
         torch.save(state_dict, ckp_tmp)
         os.replace(ckp_tmp, ckp_path)
+
+        # 保存 wandb run id，恢复训练时可以继续写到同一个实验记录
         wandb_id = None
         if wandb:
             if hasattr(wandb, 'get_run'):
@@ -88,6 +98,7 @@ def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoc
             else:
                 wandb_id = getattr(wandb, 'id', None)
 
+        # resume checkpoint 比推理权重更完整：包含模型、优化器和训练进度
         resume_data = {
             'model': state_dict,
             'optimizer': optimizer.state_dict(),
@@ -96,26 +107,34 @@ def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoc
             'world_size': dist.get_world_size() if dist.is_initialized() else 1,
             'wandb_id': wandb_id
         }
+
+        # 额外传入的对象也一起保存，例如 lr_scheduler、scaler 或自定义状态
         for key, value in kwargs.items():
             if value is not None:
                 if hasattr(value, 'state_dict'):
+                    # 对额外模块也去掉 DDP / torch.compile 的包装后再取 state_dict
                     raw_value = value.module if isinstance(value, DistributedDataParallel) else value
                     raw_value = getattr(raw_value, '_orig_mod', raw_value)
                     resume_data[key] = raw_value.state_dict()
                 else:
                     resume_data[key] = value
 
+        # resume 文件同样采用临时文件 + 原子替换，保证可恢复文件始终完整
         resume_tmp = resume_path + '.tmp'
         torch.save(resume_data, resume_tmp)
         os.replace(resume_tmp, resume_path)
+
+        # 主动释放大对象引用，帮助长时间训练时及时回收内存
         del state_dict, resume_data
         torch.cuda.empty_cache()
     else:  # 加载模式
         if os.path.exists(resume_path):
+            # map_location='cpu' 避免加载阶段直接占用 GPU 显存
             ckp_data = torch.load(resume_path, map_location='cpu')
             saved_ws = ckp_data.get('world_size', 1)
             current_ws = dist.get_world_size() if dist.is_initialized() else 1
             if saved_ws != current_ws:
+                # world_size 变化时，每个进程看到的 batch 数会变，因此按 GPU 数折算 step
                 ckp_data['step'] = ckp_data['step'] * saved_ws // current_ws
                 Logger(f'GPU数量变化({saved_ws}→{current_ws})，step已自动转换为{ckp_data["step"]}')
             return ckp_data
@@ -123,12 +142,13 @@ def lm_checkpoint(lm_config, weight='full_sft', model=None, optimizer=None, epoc
 
 
 def init_model(lm_config, from_weight='pretrain', tokenizer_path='../model', save_dir='../out', device='cuda'):
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    _base = os.path.dirname(__file__)
+    tokenizer = AutoTokenizer.from_pretrained(os.path.abspath(os.path.join(_base, tokenizer_path)))
     model = MiniMindForCausalLM(lm_config)
 
     if from_weight!= 'none':
         moe_suffix = '_moe' if lm_config.use_moe else ''
-        weight_path = f'{save_dir}/{from_weight}_{lm_config.hidden_size}{moe_suffix}.pth'
+        weight_path = f'{os.path.abspath(os.path.join(_base, save_dir))}/{from_weight}_{lm_config.hidden_size}{moe_suffix}.pth'
         weights = torch.load(weight_path, map_location=device)
         model.load_state_dict(weights, strict=False)
 

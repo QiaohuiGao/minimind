@@ -1,10 +1,57 @@
-# Day 5 Prereading: 评测、推理参数、失败分析
+# Day 5 Prereading: LoRA 微调 + 评测与推理参数
 
 ## 今日目标
 
-今天不追求继续训练，而是建立评测习惯。你要能判断自己的模型哪里变好了，哪里只是看起来变好了。
+今天两件事：理解 LoRA 作为 full finetune 的轻量替代；建立评测习惯，能判断模型哪里变好了，哪里只是看起来变好了。
 
-## 必须掌握的基础概念
+---
+
+## Part 1：LoRA 微调
+
+### 必须掌握的基础概念
+
+- LoRA（Low-Rank Adaptation）：只更新少量新增参数，冻结原始权重。
+- Low-rank decomposition：把权重更新分解为两个小矩阵乘积 BA（B: d×r，A: r×k，r 远小于 d/k）。
+- rank r：控制 LoRA 容量，越大越接近 full finetune，典型值 4/8/16/32。
+- alpha scaling：实际更新 = (α/r) × BA，控制 LoRA 更新幅度。
+- Target modules：通常对 q_proj、v_proj 加 LoRA；可选加 k_proj、o_proj。
+- Adapter merging：推理前把 BA 合并进原始权重 W' = W + (α/r)BA，不增加推理开销。
+
+### 面试考点
+
+- LoRA 为什么有效？为什么 full finetune 的权重变化是低秩的？
+- rank 太小或太大分别有什么问题？
+- LoRA 合并进原始权重后，推理速度变了吗？
+- LoRA 和 full SFT 分别适合什么场景？
+- QLoRA 在 LoRA 基础上加了什么？
+
+### 工业要求
+
+- LoRA 适合：显存受限、多任务切换（每个任务保留独立 adapter）、快速迭代。
+- Full SFT 适合：数据充足、追求最佳性能、长期单一任务。
+- 保存时只保存 LoRA weights（小很多），不保存完整模型。
+- 合并前必须确认 alpha/rank 配置和训练时一致。
+
+### 项目中要看的文件
+
+- `model/model_lora.py`
+- `trainer/train_lora.py`
+
+### 今日推荐命令
+
+```bash
+python trainer/train_lora.py \
+  --hidden_size 768 \
+  --from_weight full_sft \
+  --epochs 1 \
+  --learning_rate 1e-4
+```
+
+---
+
+## Part 2：评测与推理参数
+
+### 必须掌握的基础概念
 
 - Offline eval：固定测试集，离线比较。
 - Human eval：人工主观评分。

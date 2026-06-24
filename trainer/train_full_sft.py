@@ -20,6 +20,37 @@ from trainer.trainer_utils import get_lr, Logger, is_main_process, lm_checkpoint
 
 warnings.filterwarnings('ignore')
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  Full SFT 整体架构协作关系
+#
+#  训练脚本 (train_full_sft.py)
+#    ├── SFTDataset               数据层：读对话 jsonl → apply_chat_template
+#    │     ├── input_ids          完整对话的 token 序列
+#    │     └── labels             只有 assistant 回答部分是真实 token id，
+#    │                            user/system 部分全部置为 -100（不参与 loss）
+#    ├── DataLoader               批处理：切 batch，多进程预加载
+#    ├── MiniMindForCausalLM      模型层（同 pretrain，结构不变）
+#    ├── AdamW optimizer          优化器：更新全部模型参数（同 pretrain）
+#    ├── GradScaler               混合精度
+#    └── lm_checkpoint            存档
+#
+#  数据流（一个 step）：
+#    jsonl {"conversations":[...]} → apply_chat_template → tokenize
+#    → input_ids [B, S]  ──→ model.forward ──→ logits [B, S, 6400]
+#    → labels    [B, S]       loss = CE(logits[:,:-1,:], labels[:,1:], ignore_index=-100)
+#                                           ↑ -100 的位置自动跳过，只算 assistant 部分
+#    → loss.backward → clip_grad_norm → optimizer.step
+#
+#  [与 Pretrain 的核心区别]：
+#    起点权重：pretrain checkpoint（不是随机初始化）
+#    labels：只有 assistant token 有值，其余 -100（loss mask）
+#    learning rate：1e-5，比 pretrain 小 50 倍（微调不能步子太大）
+#
+#  [与 LoRA 的核心区别]：
+#    Full SFT 更新全部参数（显存占用大，效果上限高）
+#    LoRA 只更新 ~1% 的参数（显存占用小，适合资源受限场景）
+# ═══════════════════════════════════════════════════════════════════════════
+
 
 def train_epoch(epoch, loader, iters, start_step=0, wandb=None):
     start_time = time.time()
@@ -138,21 +169,26 @@ if __name__ == "__main__":
     # ========== 4. 配 wandb（实际用的是 swanlab，API 兼容 wandb）==========
     wandb = None
     if args.use_wandb and is_main_process():
-        import swanlab as wandb
-        wandb_id = ckp_data.get('wandb_id') if ckp_data else None
-        resume = 'must' if wandb_id else None
+        # import swanlab as wandb
+        import wandb
+        wandb_id = ckp_data.get('wandb_id') if ckp_data else None # 续训时取回上次的实验id
+        resume = 'must' if wandb_id else None                     # 有id就接续上次曲线，否则新建
         wandb_run_name = f"MiniMind-Full-SFT-Epoch-{args.epochs}-BatchSize-{args.batch_size}-LearningRate-{args.learning_rate}"
         wandb.init(project=args.wandb_project, name=wandb_run_name, id=wandb_id, resume=resume)
 
     # ========== 5. 定义模型、数据、优化器 ==========
     # init_model：内部做了 MiniMindForCausalLM(config) + load_state_dict(pretrain 权重)
     model, tokenizer = init_model(lm_config, args.from_weight, device=args.device)
+    
     # SFTDataset：读对话格式 JSONL，只有 assistant 部分的 token 参与 loss（其余位置 label=-100）
     train_ds = SFTDataset(args.data_path, tokenizer, max_length=args.max_seq_len)
+    
     # 多卡时用 DistributedSampler 保证每张卡拿到不同的数据切片
     train_sampler = DistributedSampler(train_ds) if dist.is_initialized() else None
+    
     # GradScaler 配合 float16 防梯度下溢；bfloat16 不需要（enabled=False 时是 no-op）
     scaler = torch.cuda.amp.GradScaler(enabled=(args.dtype == 'float16'))
+    
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
     # ========== 6. 从 checkpoint 恢复训练状态（断点续训）==========
@@ -175,6 +211,7 @@ if __name__ == "__main__":
     # ========== 8. 开始训练 ==========
     for epoch in range(start_epoch, args.epochs):
         train_sampler and train_sampler.set_epoch(epoch)  # 多卡：每个 epoch 重新 shuffle
+        
         setup_seed(42 + epoch); indices = torch.randperm(len(train_ds)).tolist()
         # SkipBatchSampler：断点续训时跳过已训练的 step，不从头重来
         skip = start_step if (epoch == start_epoch and start_step > 0) else 0

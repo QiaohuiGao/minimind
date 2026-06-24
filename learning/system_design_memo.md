@@ -1,6 +1,6 @@
 # 系统设计备忘录：LLM 学习引导 Agent
 
-> 版本：v0.1 — 2026-06-22  
+> 版本：v0.2 — 2026-06-23  
 > 状态：初稿，持续迭代  
 > 目的：指导 Claude 如何在本项目中扮演"学习引导 Agent"的角色，并作为未来构建独立程序/Agent 的设计文档
 
@@ -263,3 +263,62 @@ LLM Learning Agent
 ---
 
 *持续更新 —— 每次发现新的学习模式或问题类型，追加到对应章节*
+
+---
+
+## 九、课程路线图（Curriculum Roadmap）
+
+### 9.1 trainer 文件覆盖状态
+
+minimind 的 `trainer/` 目录对应完整的 LLM 训练流水线，每个文件是一个学习阶段。
+
+| 文件 | 技术主题 | Layer | 状态 |
+|------|---------|-------|------|
+| `train_tokenizer.py` | 词表构建（BPE/Unigram） | L1 | ⬜ 未开始 |
+| `train_pretrain.py` | 预训练（next token prediction） | L1-L3 | ✅ day01-02 |
+| `train_full_sft.py` | 全参数 SFT（指令微调） | L3-L6 | 🔄 day02，进行中 |
+| `train_lora.py` | LoRA（低秩参数高效微调） | L7 | ⬜ 未开始 |
+| `train_distillation.py` | 知识蒸馏（teacher→student） | L3-L5 | ⬜ 未开始 |
+| `train_dpo.py` | DPO（直接偏好优化） | L6 | ⬜ 未开始 |
+| `train_grpo.py` | GRPO（DeepSeek-R1 同款） | L6 | ⬜ 未开始 |
+| `train_ppo.py` | PPO（经典 RLHF） | L6 | ⬜ 未开始 |
+| `rollout_engine.py` | RL rollout 引擎（配合 PPO/GRPO） | L6-L7 | ⬜ 未开始 |
+| `train_agent.py` | Agent 训练 | L6-L7 | ⬜ 未开始 |
+
+### 9.2 推荐学习顺序
+
+依赖关系从上到下，每阶段建议先读代码再跑实验：
+
+```
+① pretrain          ✅  已完成
+       ↓
+② full_sft          🔄  进行中（当前）
+       ↓
+③ lora              — LoRA 是 SFT 的轻量替代，理解 full_sft 后自然衔接
+       ↓
+④ distillation      — 需要理解 pretrain 输出分布（logits）
+       ↓
+⑤ dpo               — alignment 起点，比 PPO 简单，先学
+       ↓
+⑥ grpo              — DeepSeek-R1 方案，reward 驱动，比 DPO 复杂
+       ↓
+⑦ ppo               — 完整 RLHF，需要 reward model，最复杂
+       ↓
+⑧ rollout_engine    — 配合 PPO/GRPO，理解后再看
+       ↓
+⑨ train_agent       — 全链路，最后
+       
+（tokenizer 独立，可以在 ① 之前或 ③ 之后穿插）
+```
+
+### 9.3 各阶段核心问题（学前预热）
+
+进入每个阶段前，Claude 应引导用户思考：
+
+| 阶段 | 进入前的核心问题 |
+|------|---------------|
+| LoRA | "为什么不直接 full finetune？低秩矩阵为什么能代替全量更新？" |
+| Distillation | "teacher 的 logits 和 hard label 有什么区别？为什么软标签更有信息量？" |
+| DPO | "SFT 教模型说什么，DPO 教模型什么？为什么需要 preference data？" |
+| GRPO | "reward 信号从哪来？为什么 GRPO 比 PPO 简单？" |
+| PPO | "什么是 policy gradient？clip ratio 解决了什么问题？" |

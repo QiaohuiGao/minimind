@@ -38,6 +38,32 @@ from trainer.trainer_utils import get_lr, Logger, is_main_process, lm_checkpoint
 
 warnings.filterwarnings('ignore')                         # 屏蔽各种警告，让日志干净
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  Pretrain 整体架构协作关系
+#
+#  训练脚本 (train_pretrain.py)
+#    ├── PretrainDataset          数据层：读 jsonl → tokenize → padding → (input_ids, labels)
+#    │     └── labels = input_ids.clone()，全部 token 参与 loss（和 SFT 不同）
+#    ├── DataLoader               批处理：把 Dataset 切成 batch，多进程预加载
+#    ├── MiniMindForCausalLM      模型层（见 model_minimind.py 架构树）
+#    │     ├── MiniMindModel      Transformer 主干（Embedding + N × Block + RMSNorm）
+#    │     └── lm_head            输出层：隐藏向量 → logits [B, S, vocab_size]
+#    ├── AdamW optimizer          优化器：更新全部模型参数
+#    ├── GradScaler               混合精度 (fp16 时防梯度下溢)
+#    └── lm_checkpoint            存档：推理权重(.pth) + 续训快照(_resume.pth)
+#
+#  数据流（一个 step）：
+#    jsonl {"text":"..."} → tokenize → [bos, t1, t2, ..., eos, pad, pad]
+#    → input_ids [B, S]  ──→ model.forward ──→ logits [B, S, 6400]
+#    → labels    [B, S]       loss = CE(logits[:,:-1,:], labels[:,1:])
+#                                           ↑ shift by 1: 用前文预测下一个 token
+#    → loss.backward → clip_grad_norm → optimizer.step
+#
+#  [与 SFT 的核心区别]：
+#    Pretrain labels = input_ids（全部 token 算 loss，学语言规律）
+#    SFT     labels = -100 except assistant 部分（只对回答算 loss，学对话行为）
+# ═══════════════════════════════════════════════════════════════════════════
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  训练一个 epoch（把数据集完整过一遍）
@@ -168,7 +194,8 @@ if __name__ == "__main__":
 
     # ========== 1. 初始化分布式环境和随机种子 ==========
     local_rank = init_distributed_mode()                  # 多卡时初始化进程组，单卡返回默认值
-    if dist.is_initialized(): args.device = f"cuda:{local_rank}"  # 多卡时每个进程绑定自己的GPU
+    if dist.is_initialized(): 
+        args.device = f"cuda:{local_rank}"  # 多卡时每个进程绑定自己的GPU
     # 设随机种子保证可复现；多卡时每张卡用不同种子(+rank)，避免数据增强等完全雷同
     setup_seed(42 + (dist.get_rank() if dist.is_initialized() else 0))
 
@@ -181,9 +208,12 @@ if __name__ == "__main__":
         dropout=args.dropout, rope_theta=args.rope_theta, max_position_embeddings=args.max_position_embeddings,
         num_experts=args.num_experts, num_experts_per_tok=args.num_experts_per_tok, router_aux_loss_coef=args.router_aux_loss_coef,
     )
-    if args.head_dim > 0: config_kwargs["head_dim"] = args.head_dim                          # 必须为偶数(RoPE要求)
-    if args.intermediate_size > 0: config_kwargs["intermediate_size"] = args.intermediate_size
-    if args.moe_intermediate_size > 0: config_kwargs["moe_intermediate_size"] = args.moe_intermediate_size
+    if args.head_dim > 0: 
+        config_kwargs["head_dim"] = args.head_dim                          # 必须为偶数(RoPE要求)
+    if args.intermediate_size > 0: 
+        config_kwargs["intermediate_size"] = args.intermediate_size
+    if args.moe_intermediate_size > 0: 
+        config_kwargs["moe_intermediate_size"] = args.moe_intermediate_size
     # 安全校验：尽早报清晰错误，避免模型深处的 RuntimeError(约束经对抗式验证)
     assert args.num_attention_heads % args.num_key_value_heads == 0, \
         f"num_attention_heads({args.num_attention_heads}) 必须能被 num_key_value_heads({args.num_key_value_heads}) 整除 (GQA约束)"

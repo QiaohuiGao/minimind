@@ -1,4 +1,59 @@
-# Day 5 Deep Dive: 生成质量为什么不等于训练 loss
+# Day 5 Deep Dive: LoRA 实现 + 生成质量为什么不等于训练 loss
+
+## 深挖问题 0：LoRA 在代码里如何实现？
+
+打开 `model/model_lora.py`。
+
+关注三件事：
+
+**1. LoRA 层的结构**
+
+```python
+# 典型实现：在 Linear 层外包一层
+class LoRALinear(nn.Module):
+    def __init__(self, in_features, out_features, r, lora_alpha):
+        self.weight = ...         # 原始权重，冻结
+        self.lora_A = nn.Linear(in_features, r, bias=False)
+        self.lora_B = nn.Linear(r, out_features, bias=False)
+        self.scaling = lora_alpha / r
+
+    def forward(self, x):
+        return F.linear(x, self.weight) + self.lora_B(self.lora_A(x)) * self.scaling
+```
+
+**2. 哪些参数被训练**
+
+```python
+# 冻结基础模型
+for param in model.parameters():
+    param.requires_grad = False
+
+# 只解冻 LoRA 参数
+for name, param in model.named_parameters():
+    if 'lora_' in name:
+        param.requires_grad = True
+```
+
+对比训练参数数量：
+
+```
+Full finetune: ~100M params（hidden=768）
+LoRA r=8:      q_proj: 768×8 + 8×768 = 12288 × 2 layers × 8 ...
+               约 0.5-2M params，节省约 98%
+```
+
+**3. 合并权重**
+
+```python
+def merge_lora(model):
+    for module in model.modules():
+        if isinstance(module, LoRALinear):
+            module.weight.data += (module.lora_B.weight @ module.lora_A.weight) * module.scaling
+```
+
+合并后模型和原始 Linear 结构完全一致，推理零开销。
+
+---
 
 ## 深挖问题 1：eval_llm 如何构造输入？
 

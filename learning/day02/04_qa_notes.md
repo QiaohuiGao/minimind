@@ -140,3 +140,54 @@ reasoning 数据里，没有思考内容的 assistant 回答经过 `apply_chat_t
 | 目的 | 学语言规律 | 学怎么回答问题 |
 
 训练循环本身几乎一样，唯一本质差异是 **label 的哪些位置参与 loss**。
+
+---
+
+## Q10. 手动读文件 vs `load_dataset` 有什么区别？
+
+**手动读文件（全量加载）：**
+```python
+with open(data_path, 'r') as f:
+    for line in f:
+        self.dataset.append(json.loads(line))
+```
+把所有数据一次性读进内存，存成 Python list。简单直接，适合小数据集（< 1GB）。
+
+**`load_dataset`（按需读取）：**
+```python
+self.samples = load_dataset('json', data_files=data_path, split='train')
+```
+HuggingFace `datasets` 库，底层用 Apache Arrow 格式，数据存在磁盘，训练时按需读取，不全部加载进内存。
+
+| | 手动读文件 | `load_dataset` |
+|--|-----------|---------------|
+| 内存占用 | 全量加载 | 按需读取 |
+| 适合数据量 | 小（< 1GB） | 大（几十 GB） |
+| 代码复杂度 | 简单 | 需要安装 `datasets` |
+
+**【待深入】** Apache Arrow 格式的具体机制、`datasets` 的 streaming 模式、多进程加载原理。
+
+---
+
+## Q11. LoRA 和 QLoRA 有什么区别？
+
+**LoRA：** 解决"训练哪些参数"的问题。原始权重 W 保持不变，旁边插两个小矩阵 A（d×r）和 B（r×d），r << d（如 r=8）。forward 时：`output = W·x + B·A·x`，只有 A 和 B 参与训练，参数量约为原来的 1%。
+
+**QLoRA：** 在 LoRA 基础上，再解决"原始权重占多少显存"的问题。把原始权重 W 从 float16（16位）量化成 int4（4位），显存压缩到 1/4，LoRA 的 A/B 矩阵仍用 bf16 训练。
+
+```
+LoRA:   W[fp16]  +  A/B[bf16 可训练]   → 原始权重占满显存
+QLoRA:  W[int4]  +  A/B[bf16 可训练]   → 原始权重压缩到 1/4
+```
+
+以 7B 模型为例：
+
+| 方式 | 显存需求 |
+|------|---------|
+| Full SFT (bf16) | ~28 GB |
+| LoRA (bf16) | ~14 GB |
+| QLoRA (int4) | ~6 GB |
+
+**代价：** int4 量化会损失一点精度，效果略差于 LoRA，但差距很小。训练时 int4 权重会临时 dequantize 回 bf16 做 forward，梯度只流向 A/B 矩阵。
+
+**【待深入】** 量化（Quantization）的具体原理、int4 精度损失的量化分析、`bitsandbytes` 库的使用。

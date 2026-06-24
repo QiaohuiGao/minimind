@@ -1,6 +1,14 @@
 # Day 5 Exam
 
-## A. 代码阅读题
+## A. LoRA 理解题
+
+1. `model_lora.py` 中 LoRA 层的 forward 是怎么写的？原始权重和 LoRA 更新如何叠加？
+2. 训练前哪些参数被冻结？代码里怎么实现的？
+3. 给定 hidden_size=768、rank=8，q_proj 的 LoRA 参数量是多少？占 full finetune q_proj 参数量的百分比？
+4. alpha=16、rank=8 时，scaling 是多少？如果把 alpha 改成 32 效果会怎么变？
+5. merge_lora 做了什么？合并后模型结构和普通模型有区别吗？
+
+## B. 代码阅读题
 
 1. `eval_llm.py` 中 `open_thinking` 如何传给 chat template？
 2. `temperature` 在 `model.generate` 中如何影响 logits？
