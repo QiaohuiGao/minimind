@@ -154,7 +154,7 @@ class SFTDataset(Dataset):
         # 20% 概率随机插入 system prompt，增加数据多样性
         conversations = pre_processing_chat(sample['conversations'])
 
-        # 渲染成格式化字符串
+        # 渲染成格式化字符串：<bos>user\n你好<eos>\n<bos>assistant\n你好啊<eos>\n<bos>user\n再见<eos>\n...
         prompt = self.create_chat_prompt(conversations)
 
         # 80% 概率清除空的 <think>\n\n</think>，避免模型学到空思考
