@@ -37,6 +37,12 @@
 - 系统设计更新 → 维护 `learning/system_design_memo.md`
 - 不主动创建不必要的新文件
 
+### 学习者状态文件（单一数据源）
+- 学习者的会/不会/学到哪，记录在 `learning/learner_profile.json`（由 `learning_system` 包读写）。
+- **对话开始时**：可读 `learner_profile.json`（或 `python3 -m learning_system status`）了解学习者现状，避免重复讲已掌握的概念。
+- **教完新概念后**：把它加进 known_concepts（`python3 -m learning_system learned "<概念>"`）；完成一个课程阶段时更新 `completed_stages` / `next_recommended`。
+- 工具命令：`status`（看现状）/ `classify "问题"`（归类+策略）/ `next`（下一步）/ `learned "概念"` / `add-qa --day N --q .. --a ..`（带去重）/ `index`（重建 `learning/qa_index.md`）。
+
 ### 问题七层分类速查
 | Layer | 领域 | 关键词 |
 |-------|------|--------|

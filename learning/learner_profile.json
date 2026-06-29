@@ -1,0 +1,52 @@
+{
+  "_comment": "学习者状态的单一数据源 (single source of truth)。由 learning_system 读写，也可手动编辑。",
+  "version": "1.0",
+  "last_updated": "2026-06-28",
+  "learner_profile": {
+    "name": "qiaohui",
+    "background": "Python 基础，无 ML/DL 背景；有真实 GPU (RTX Pro 6000)，边做边学",
+    "current_level": "L3，部分 L4",
+    "learning_style": [
+      "喜欢追问为什么，不满足于怎么做",
+      "实践导向，真实跑模型",
+      "看 torch 代码 + 中文解释 胜过数学符号公式"
+    ],
+    "known_concepts": [
+      "RoPE",
+      "GQA",
+      "SwiGLU",
+      "RMSNorm",
+      "Flash Attention",
+      "KV Cache",
+      "causal mask",
+      "loss mask (SFT/DPO)",
+      "LoRA (rank/低秩分解/monkey-patch 挂载/B 零初始化)",
+      "Embedding 查表",
+      "VLM 推理架构(概念)",
+      "Python 工程: __file__路径定位 / sys.path / isinstance / setattr / 闭包默认参数快照 / .to()非原地"
+    ],
+    "blind_spots": [
+      "quantization (INT8/INT4/GPTQ/AWQ)",
+      "distributed training (TP/PP/DP/ZeRO)",
+      "CUDA kernels",
+      "DPO/RL 的 loss 数学推导"
+    ]
+  },
+  "curriculum_state": {
+    "current_stage": "LoRA 手写练习 + DPO 起步",
+    "completed_topics": [
+      "pretrain（Mymodel.py 已训练，my_model.pt 存在）",
+      "SFT 数据格式 + loss mask + Mymodel_sft.py（dataset pipeline 已用假数据验证通过）",
+      "LoRA 原理（rank / 低秩假设 / monkey-patch forward）"
+    ],
+    "in_progress": [
+      "Mymodel_lora.py：修 5 个 bug 后跑通",
+      "Mymodel_dpo.py：修 generate_loss_mask 后跑通"
+    ],
+    "completed_stages": [
+      "pretrain",
+      "full_sft"
+    ],
+    "next_recommended": "跑通 LoRA + DPO（先修 LoRA 5 个 bug + DPO loss_mask；备好数据/权重/wandb）"
+  }
+}

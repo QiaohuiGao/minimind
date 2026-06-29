@@ -18,7 +18,7 @@ class Config:  # 不能继承 nn.Module，Config 只是普通数据类
         self.num_heads = 4
         self.num_keyvalue_heads = 2   # GQA：2个KV头共享给4个Q头
         self.head_dim = 64
-        self.intermediate_size = 512
+        self.intermediate_size = 1024
         self.max_seq_len = 1024
         self.dropout = 0.1
 
@@ -63,7 +63,6 @@ class MyModelDataset(Dataset):
         return input_ids, labels
 
 
-
 def repeat_kv(x, n_rep):
     if n_rep == 1:
         return x
@@ -71,20 +70,32 @@ def repeat_kv(x, n_rep):
     return x[:, :, None, :, :].expand(B, kv_heads, n_rep, S, D).reshape(B, kv_heads * n_rep, S, D)
 
 
+# 预计算 RoPE 的"角度表"：旋转角度 θ = 角频率 ω × 位置(把 position 当成 time)
+# 角度只依赖 position 和第几对维度，与 token 内容无关，所以算一次反复用
 def precompute_rope_freqs(head_dim, max_seq_len, base=10000.0):
-    freqs = 1.0 / (base ** (torch.arange(0, head_dim, 2).float() / head_dim))
-    t = torch.arange(max_seq_len).float()
-    freqs = torch.outer(t, freqs)
-    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)
+    # 角频率 ω：每对(pair)维度一个，几何递减(秒针→分针→时针)
+    # arange(0,head_dim,2) 每隔2取一个 → 共 head_dim//2 个 pair；shape [head_dim//2]
+    freqs = 1.0 / (base ** (torch.arange(0, head_dim, 2).float() / head_dim))#（0，head_dim,2）每两个取一值求角频率
+    t = torch.arange(max_seq_len).float()#求时间/也就是位置   # shape [max_seq_len]
+    # outer：每个位置 × 每个 ω = 角度 θ；变量被复用，这里 freqs 已是"角度"不是"角频率"
+    freqs = torch.outer(t, freqs)                    # shape [max_seq_len, head_dim//2]
+    # polar(模长=1, 角度=θ) = e^{iθ} = cosθ + i·sinθ；这才是真正预计算并返回的东西
+    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64, [max_seq_len, head_dim//2]
     return freqs_cis
 
 #sftdataset: conversations->rule out tools/tool calls,add system prompt to make it be sensitive to system requirements, and sperate the assistant answer
 
+# 运行时把预计算的旋转真正作用到 Q/K 上：向量两两配对成复数 → 乘 e^{iθ} 完成旋转 → 拆回实数
 def apply_rope(x, freqs_cis):
-    B, H, S, D = x.shape
-    x_complex = torch.view_as_complex(x.float().reshape(B, H, S, D // 2, 2))
+    B, H, S, D = x.shape  # B=batch, H=heads, S=seq_len, D=head_dim
+    # 把向量最后一维 D 拆成 [D//2, 2] 即两两配对，再看成复数(实部,虚部)；
+    # .float() 是为了在 fp32 下算旋转，避免 bf16/fp16 精度丢失
+    x_complex = torch.view_as_complex(x.float().reshape(B, H, S, D // 2, 2))  # [B,H,S,D//2] complex
+    # 取前 S 个位置的角度表；unsqueeze 两次 → [1,1,S,D//2] 以便对 B、H 做 broadcasting
     freqs = freqs_cis[:S].unsqueeze(0).unsqueeze(0).to(x.device)
+    # 核心：复数乘单位复数 e^{iθ} = 把向量旋转 θ 角度(长度不变)，位置信息刻进方向里
     x_rotated = x_complex * freqs
+    # 拆回实数 [B,H,S,D//2,2] → reshape 回 [B,H,S,D]，type_as 还原 dtype 给后续 attention 用
     return torch.view_as_real(x_rotated).reshape(B, H, S, D).type_as(x)
 
 
@@ -126,6 +137,15 @@ class MyModelAttention(nn.Module):
             k = torch.cat((past_k, k), dim=2)
             v = torch.cat((past_v, v), dim=2)
         new_kv = (k, v)
+        
+        #  [B, num_keyvalue_heads, past_seq_len, head_dim]
+        # └批量┘ └─KV 头数（GQA）─┘ └已缓存的长度┘ └每头维度┘
+        # dim0        dim1            dim2         dim3
+        
+        # past_k: [B, kv_heads, past_seq_len, head_dim]
+        #    k:   [B, kv_heads,      S,       head_dim]
+        # ─────────────────────────────────────────── cat(dim=2)
+        #    k:   [B, kv_heads, past_seq_len + S, head_dim]
 
         k = repeat_kv(k, self.n_rep)
         v = repeat_kv(v, self.n_rep)
@@ -135,14 +155,31 @@ class MyModelAttention(nn.Module):
         scores = q @ k.transpose(-2, -1) / math.sqrt(self.config.head_dim)
 
         causal_mask = torch.triu(
-            torch.full((S, total_S), float("-inf"), device=self.config.device),
-            diagonal=total_S - S + 1
+            torch.full((S, total_S), float("-inf"), device=self.config.device), 
+            diagonal=total_S - S + 1 #保留 列号 - 行号 ≥ d 的位置，其余清零。
         )
+        #已经缓存了 2 个 token（past=2），这步来 3 个新 query（S=3），所以 total_S = 5，d = 5 - 3 + 1 = 3。
+        #             key位置→  0    1    2    3    4
+        # query2(真实位置2)      ·    ·    ·   -inf -inf
+        # query3(真实位置3)      ·    ·    ·    ·   -inf
+        # query4(真实位置4)      ·    ·    ·    ·    ·
         scores = scores + causal_mask
 
         attn_weight = F.softmax(scores, dim=-1)
+        # scores 形状 [B, num_heads, S, total_S]，dim=-1 是最后一维 = total_S（所有 key 那一维）。
+        # 所以 softmax 是对每个 query 那一行的所有 key 做归一化：
+        #                 key0   key1   key2   key3
+        # query_i 这一行:  2.0    1.0    0.5    -inf     ← scores（含 mask）
+        #                   │softmax(dim=-1)
+        #                   ▼
+        # attn_weight:    0.60   0.22   0.13    0.00     ← 加起来=1
+        # mask 阶段:  把未来位置设成 -inf
+        # softmax:   -inf → e^(-inf) → 0      （未来权重归零）
+        #         其余正常分配，剩下的加起来还是 1
         attn_weight = self.attn_dropout(attn_weight)
         output = (attn_weight @ v).transpose(1, 2).reshape(B, S, -1)
+        # 用这组占比去加权平均所有 value 向量：60% 的 key0 的 v + 22% 的 key1 的 v + …。
+        # 所以 softmax 的输出本质是"这个 query 该从哪些 token 那里、各取多少信息"的配方。
         return self.o_proj(output), new_kv
 
 
@@ -328,8 +365,10 @@ def evalPrompt():
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(os.path.dirname(__file__))
     prompt = ["你叫什么名字"]
+    
     prompt_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(config.device)
     generated_ids = prompt_ids[0].tolist()
+    
     past_kv = None
     with torch.no_grad():
         for _ in range(100):

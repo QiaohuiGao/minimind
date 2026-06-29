@@ -1,6 +1,6 @@
 # 系统设计备忘录：LLM 学习引导 Agent
 
-> 版本：v0.2 — 2026-06-23  
+> 版本：v0.3 — 2026-06-28  
 > 状态：初稿，持续迭代  
 > 目的：指导 Claude 如何在本项目中扮演"学习引导 Agent"的角色，并作为未来构建独立程序/Agent 的设计文档
 
@@ -166,8 +166,12 @@ Claude 在本项目中的"系统产出"文件：
 - 持久性硬件知识（不随 day 变化）
 - 需要定期重组，避免重复
 
-### 5.4 未来扩展文件（待建立）
-- `learning/concept_map.md`：用户已掌握的概念图谱（Layer × 概念）
+### 5.4 已落地文件 / 程序（v0.3 起）
+- ✅ `learning/learner_profile.json`：学习者状态单一数据源（known_concepts / blind_spots / curriculum_state）—— 落地了原"待建立"的 concept_map
+- ✅ `learning/qa_index.md`：所有 dayNN 问答的总索引（`learning_system index` 自动生成）
+- ✅ `learning_system/`：把本设计文档落地成的可运行 Python 包（见第六章）
+
+### 5.4b 仍未建立（待办）
 - `learning/error_log.md`：遇到的 bug 和解决方案汇总
 - `learning/reading_list.md`：推荐论文和延伸阅读
 
@@ -175,31 +179,48 @@ Claude 在本项目中的"系统产出"文件：
 
 ## 六、未来 Agent 架构设计
 
-### 6.1 核心模块（概念层）
+### 6.1 核心模块（✅ 已落地为 `learning_system/` 包）
 
 ```
-LLM Learning Agent
-├── Learner Profiler      # 分析问题历史，推断当前 Level（L0-L5）
-├── Question Classifier   # 将问题归类到 Layer 0-7
-├── Response Planner      # 选择回答策略（类比/公式/代码/实验）
-├── Knowledge Tracker     # 维护已掌握 vs 未掌握的概念图谱
-├── Artifact Generator    # 自动更新学习笔记、实验记录、错误日志
-└── Curriculum Planner    # 根据进度推荐下一步学习内容
+LLM Learning Agent                       落地位置
+├── Learner Profiler      # 推断 Level    → profile.LearnerProfile
+├── Question Classifier   # 归类 Layer0-7 → classifier.classify        ✅
+├── Response Planner      # 选回答策略     → planner.plan_response      ✅
+├── Knowledge Tracker     # 维护概念图谱   → profile.LearnerProfile     ✅
+├── Artifact Generator    # 笔记+去重+索引 → artifacts (方向 D)         ✅
+└── Curriculum Planner    # 推荐下一步     → planner.next_topics        ✅
 ```
+
+CLI：`python3 -m learning_system {status|classify|next|learned|add-qa|index}`
+当前实现是**规则驱动**（关键词分类 / difflib 去重 / 依赖图推进），不依赖 LLM，纯 stdlib 可跑。
+**下一步（未来）**：把规则换成调用模型（甚至 minimind 自己），让分类/策略/画像更智能。
 
 ### 6.2 需要维护的状态
 
 ```json
 {
   "learner_profile": {
-    "current_level": "L2-L3",
-    "known_concepts": ["RoPE", "GQA", "SwiGLU", "Flash Attention", "KV Cache"],
-    "blind_spots": ["quantization", "distributed training", "CUDA kernels"]
+    "current_level": "L3，部分 L4",
+    "known_concepts": [
+      "RoPE", "GQA", "SwiGLU", "RMSNorm", "Flash Attention", "KV Cache", "causal mask",
+      "loss mask (SFT/DPO)", "LoRA (rank/低秩分解/monkey-patch 挂载/B 零初始化)",
+      "Embedding 查表", "VLM 推理架构(概念)",
+      "Python 工程: __file__路径定位 / sys.path / isinstance / setattr / 闭包默认参数快照 / .to()非原地"
+    ],
+    "blind_spots": ["quantization", "distributed training", "CUDA kernels", "DPO/RL 的 loss 数学推导"]
   },
   "curriculum_state": {
-    "current_day": 2,
-    "completed_topics": ["pretrain data format", "SFT data format"],
-    "next_recommended": "loss masking deep dive"
+    "current_stage": "LoRA 手写练习 + DPO 起步（实际已远超原文档的 day02）",
+    "completed_topics": [
+      "pretrain（Mymodel.py 已训练，my_model.pt 存在）",
+      "SFT 数据格式 + loss mask + Mymodel_sft.py（dataset pipeline 已用假数据验证通过）",
+      "LoRA 原理（rank/低秩假设/monkey-patch forward）"
+    ],
+    "in_progress": [
+      "Mymodel_lora.py 手写（接近完成，剩几个 bug 待修+跑通）",
+      "Mymodel_dpo.py 的 generate_loss_mask"
+    ],
+    "next_recommended": "DPO 原理（为什么需要 preference data）→ 跑通 LoRA 训练"
   }
 }
 ```
@@ -240,10 +261,11 @@ LLM Learning Agent
 - [ ] LoRA 的数学原理（为什么低秩分解有效？）
 
 ### 7.3 关于系统设计本身
-- [ ] Agent 如何跨多天"记住"学习历史？（当前依赖 CLAUDE.md + 文件，future：learner_profile.json）
+- [x] ~~Agent 如何跨多天"记住"学习历史？~~ → ✅ v0.3：`learner_profile.json` + `learning_system status`
+- [x] ~~笔记如何避免重复累积？~~ → ✅ v0.3：`artifacts.add_qa_note` difflib 去重 + `index` 总索引
 - [ ] 如何衡量学习效果？（quiz？代码复现率？能否独立实现某个模块？）
-- [ ] 笔记文件如何版本管理，避免内容重复累积？（当前靠人工，future：去重 + 索引）
 - [ ] 当知识出现更新（论文更新、最佳实践变化）时，如何 invalidate 旧笔记？
+- [ ] 规则驱动的分类/策略何时升级成模型驱动（用 LLM 判断 Level、生成解释）？
 
 ---
 
@@ -272,14 +294,18 @@ LLM Learning Agent
 
 minimind 的 `trainer/` 目录对应完整的 LLM 训练流水线，每个文件是一个学习阶段。
 
+> 注：用户采用"**对照参考 + 自己手写重实现**"的学习方式，产出物在 `model/` 下，命名为 `Mymodel*.py`（如 `Mymodel.py` / `Mymodel_sft.py` / `Mymodel_lora.py` / `Mymodel_dpo.py`），参考实现是同目录的 `model_*.py` 和官方 `trainer/`。下表"状态"按用户的 `Mymodel*.py` 进度计。
+>
+> 课程外额外覆盖：**VLM 推理架构**（vision encoder → projector → 拼接视觉 token → 同一 decoder 生成）已做概念讲解，不在原 9 阶段流水线内。
+
 | 文件 | 技术主题 | Layer | 状态 |
 |------|---------|-------|------|
 | `train_tokenizer.py` | 词表构建（BPE/Unigram） | L1 | ⬜ 未开始 |
-| `train_pretrain.py` | 预训练（next token prediction） | L1-L3 | ✅ day01-02 |
-| `train_full_sft.py` | 全参数 SFT（指令微调） | L3-L6 | 🔄 day02，进行中 |
-| `train_lora.py` | LoRA（低秩参数高效微调） | L7 | ⬜ 未开始 |
+| `train_pretrain.py` | 预训练（next token prediction） | L1-L3 | ✅ 完成（Mymodel.py / my_model.pt）|
+| `train_full_sft.py` | 全参数 SFT（指令微调） | L3-L6 | ✅ 代码完成并验证（Mymodel_sft.py），待真实数据跑 |
+| `train_lora.py` | LoRA（低秩参数高效微调） | L7 | 🔄 手写练习中（Mymodel_lora.py，接近完成）|
 | `train_distillation.py` | 知识蒸馏（teacher→student） | L3-L5 | ⬜ 未开始 |
-| `train_dpo.py` | DPO（直接偏好优化） | L6 | ⬜ 未开始 |
+| `train_dpo.py` | DPO（直接偏好优化） | L6 | 🔄 起步（Mymodel_dpo.py，loss_mask 进行中）|
 | `train_grpo.py` | GRPO（DeepSeek-R1 同款） | L6 | ⬜ 未开始 |
 | `train_ppo.py` | PPO（经典 RLHF） | L6 | ⬜ 未开始 |
 | `rollout_engine.py` | RL rollout 引擎（配合 PPO/GRPO） | L6-L7 | ⬜ 未开始 |

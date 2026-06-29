@@ -158,6 +158,49 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 > - **SRAM（片上缓存）**：每个 SM（计算核心）自带，几十～几百KB，超快（~19 TB/s，快 10 倍）但极小。
 > - Flash Attention 本质：把 Q·K·V 分块搬到 SRAM 里算完直接累加，不把 S×S 中间矩阵写回 HBM。减少搬运 = 提速。
 
+## Q11b. RMSNorm 为什么比 LayerNorm 快？memory-bound 与"内存墙"
+
+> **笔记：核心前提——norm 层是 memory-bound（卡在访存），不是 compute-bound（卡在算力）。**
+>
+> **RMSNorm 快的两个原因：**
+> ```python
+> # LayerNorm：两个统计量
+> mean = x.mean(-1)                 # ① 先求均值
+> var  = ((x - mean)**2).mean(-1)   # ② 再求方差（依赖①）
+> y = (x - mean)/sqrt(var+eps)*gamma + beta   # 有减均值、有 beta
+> # RMSNorm：一个统计量
+> rms = (x**2).mean(-1).sqrt()      # 只求平方均值
+> y = x/(rms+eps)*gamma             # 不减均值、没 beta
+> ```
+> 1. **算术更少**：省掉求 mean、减 mean（centering）、加 beta（bias）。
+> 2. **片上扫描更少**：LayerNorm 要 mean+var = 逻辑上扫两遍 reduction；RMSNorm 只要平方和 = 一遍。
+>
+> ⚠️ **诚实的 nuance**：那块 activation 从 HBM 读进来两者都是一遍，**HBM 主干流量差不多**。RMSNorm 真正省的是**片上（SRAM/寄存器）的规约遍数 + 中间量（不用存 mean）+ 算术**。博客笼统说"减少 memory movement"指的是这个，不是主干流量减半。
+>
+> **mean subtraction / addition 是什么：**
+> - mean subtraction（减均值/centering）= `x - mean`，把数据平移到平均值为 0。
+> - addition（加 beta）= 结尾 `+ beta`，一个可学习偏移；配套 gamma（乘=缩放）、beta（加=平移）。
+> - RMSNorm 主张：归一化真正起作用的是**缩放幅度**，不是**居中/偏移** → 两个都砍，更快更省、效果基本不掉。
+>
+> **什么限制 HBM↔SRAM 搬运速度 = memory bandwidth（带宽）：**
+> - 带宽 ≈ **bus width（位宽，多少根线并行）× clock（频率）× 内存类型**。
+> - 数字感受：HBM ~1–3 TB/s；SRAM ~19 TB/s+（快约一个数量级）。
+>
+> **带宽为什么不能无限大（物理墙）：**
+> | 想提带宽 | 撞到的墙 |
+> |---|---|
+> | 加位宽 | 引脚数/走线面积有限、功耗↑（HBM 靠垂直堆叠+硅中介层用几千根短线突破） |
+> | 提频率 | 信号完整性（crosstalk/衰减）、距离（HBM 要贴着 GPU）、发热 |
+> | — | 功耗散热预算固定、HBM 工艺贵/良率低 |
+>
+> **memory wall（内存墙）**：算力(FLOPS)涨得猛，带宽被物理墙限死涨得慢 → 差距越拉越大 → 越来越多操作变 memory-bound。
+>
+> **判断 memory-bound 的标准——arithmetic intensity（算术强度）= FLOPs / Bytes：**
+> - 高（搬1字节算很多）→ compute-bound（如矩阵乘法）。
+> - 低（搬一堆只算几下）→ **memory-bound**（norm、激活、element-wise）。
+>
+> **关键结论**：因为算力相对过剩、带宽是瓶颈，优化方向是 **"少搬"而不是"少算"**——RMSNorm 少扫一遍、Flash Attention 把中间结果留 SRAM 不写回 HBM、kernel fusion 把多个 op 合并成一次 HBM 读写，全是在跟内存墙较劲。
+
 ## Q12. 两个 Triton（完全不同的东西）
 
 > **笔记：**
@@ -299,6 +342,94 @@ PID  2898   G   Xorg      175MiB   ← 桌面系统占的，忽略
 > **`intermediate_size` 为什么不用 `self`：** 它只是 `__init__` 里的临时局部变量，用来创建 `nn.Linear` 后就不再需要——数值已"固化"进权重矩阵的形状里，后续方法不会再读这个数字。
 >
 > **`ACT2FN` 是什么：** 来自 `from transformers.activations import ACT2FN`，是 HuggingFace 提供的激活函数字典，`ACT2FN['silu']` 返回 `nn.SiLU()`。
+
+---
+
+## Q16b. 为什么 FFN 必须有 + 为什么用 SwiGLU + 一组 "consensus" 经验律
+
+> **① 为什么 FFN 层必须存在：**
+> - 分工：**Attention = 跨 token 交流**（搬运/汇聚上下文）；**FFN = 每个 token 单独加工**（逐位置深加工）。缺一不可。
+> - 硬理由：Attention 主体≈线性，**只堆 attention 会塌缩成一个线性变换**（连异或都学不会）。FFN 的激活函数提供**非线性**，每多堆一层才真增表达力。
+> - 额外：FFN 占 Transformer **~2/3 参数**，行为像 **key-value memory**，预训练学的事实知识主要存这。
+>
+> **② 为什么现代 LLM 用 SwiGLU（不是 ReLU FFN）：**
+> ```python
+> 传统: y = down(relu(up(x)))                # 2 矩阵
+> SwiGLU: y = down( silu(gate(x)) * up(x) )  # 3 矩阵，多一条门控支路
+> ```
+> - **门控（gating）**：`silu(gate(x))` 算闸门值，逐元素乘 `up(x)` → 按输入**动态过滤**信息（≈0 关门、大值放行）。
+> - **SiLU 比 ReLU 平滑**：`silu=x*sigmoid(x)`，负区不硬归零 → 梯度更好、无 dead ReLU。
+> - **实测更好**：Google《GLU Variants Improve Transformer》证明同算力下 loss 更低 → PaLM/LLaMA/Qwen/DeepSeek 全跟进。
+>
+> **③ `d_ff = 4 × d_model`（FFN 宽度比，几乎所有模型遵守）：**
+> - `d_model`=hidden_size，`d_ff`=intermediate_size。FFN 做"升维→非线性→降维"，中间撑开到 **4 倍**是经验甜点（太小弱、太大浪费且边际收益递减）。
+> - ⚠️ **SwiGLU 是 exception**：多一个矩阵，为保持总参数量不变 → `d_ff' = (2/3)×4 = 8/3 ≈ 2.67 × d_model`。这就是为什么 minimind 的 `intermediate_size` 是 ~2.67× 而非 4×。本质是同一份参数预算"2 个矩阵"vs"3 个矩阵"的不同切法。
+>
+> **④ 一组同类 "consensus hyperparameter"（实验试出、全行业照抄的甜点）：**
+>
+> 架构侧：
+> | 规律 | 值 | 说明 |
+> |---|---|---|
+> | FFN 宽度比 | d_ff = 4×d_model（SwiGLU 2.67×） | 见上 |
+> | head_dim | **64 或 128** | 模型变大靠加头数，不是加 head_dim；太小算不准 Q·K |
+> | 宽深比 d_model/n_layers | **~128** | 放大要宽深一起涨，不能只堆层 |
+> | vocab_size | 32k→128k+ 越来越大 | 大词表→序列更短更高效（代价 embed 参数多） |
+>
+> 训练侧：
+> | 超参 | 共识值 | 备注 |
+> |---|---|---|
+> | 数据:参数 (Chinchilla) | **tokens ≈ 20×params** | 大模型必须配足数据；现代常超 20× 换推理省成本 |
+> | Adam betas | **(0.9, 0.95)** | ⚠️ 大 LLM 用 0.95，非 torch 默认 0.999 |
+> | gradient clip | **1.0** | SFT 代码里就是 |
+> | weight init std | **0.02** | LoRA A 矩阵初始化同值 |
+> | warmup | 总步数 ~1-3% | |
+> | RoPE theta | 10000（长上下文调到 1e6） | |
+> | peak LR | 随模型增大而减小（~∝1/√d_model） | 大模型更敏感，步子要小 |
+>
+> **一句话**：这些倍数/比例都不是推导的最优值，是"试出来+全行业沿用"的经验甜点；记住它们能快速判断一个模型配置正不正常。
+
+---
+
+## Q16c. 两个比例的"容错盆地"（CS336 slide 实验图）
+
+> **核心 takeaway：很多架构超参有一整片平坦"盆地（basin）"，consensus 值只是盆地里的舒适点，不是唯一最优** → 这些不必纠结，挑公认值即可，省精力调真正敏感的（lr、数据）。
+
+> **① FFN 比例 `d_ff/d_model` 有个宽盆地（1~10 都近最优）：**
+>
+> CS336 在 50M 模型上扫这个比例，画 **loss 相对最优增加了百分之几**（越低越好）：
+> ```
+> ratio 0.5 → +0.7%（略差）
+> ratio 1~4 → ≈0%   ← 平坦盆地，随便选几乎没差别
+> ratio 8   → +1.6%（开始变差，还小）
+> ratio 20  → +5%   （明显差）
+> ratio 40  → +8%   （很差）
+> ```
+> - `d_ff=4×d_model` 的真相：4 不是刀尖最优，是**落在盆地中间的舒适选择**。
+> - 要避免的是**太大**（>10 陡增）；太小只略差 → **宁偏小勿偏大**。
+> - 图里两条 head 配置线几乎重合 → FFN 比例和 head 配置**互不影响**，可独立调。
+
+> **② 注意力比例 `(num_heads × head_dim) / d_model` ≈ 1（主流共识）：**
+>
+> 注意这是另一个比例（不是 FFN 那个）：所有 head 拼起来的总维度 ÷ 模型维度。
+> ```python
+> num_heads × head_dim = d_model     # ratio=1：把 hidden 切成若干份分给各 head，切满不溢出
+> # → num_heads = d_model / head_dim （正是"head_dim 固定 64/128、靠加头数"的来源）
+> ```
+> | 模型 | heads×head_dim | d_model | Ratio |
+> |---|---|---|---|
+> | GPT-3 | 96×128=12288 | 12288 | **1** |
+> | LLaMA2 | 64×128=8192 | 8192 | **1** |
+> | Qwen | 24×256=6144 | 5120 | 1.2 |
+> | LaMDA | 128×128=16384 | 8192 | 2 |
+> | T5 | 128×128=16384 | 1024 | 16 |
+>
+> - 绝大多数模型 **Ratio≈1**（Q/K/V 投影前后维度不变，最自然最省）= 标准 MHA。
+> - **异常几乎都是 Google 模型**（T5=16、LaMDA=2）：故意把 attention 总维度做得远大于模型维度。
+>
+> | 比例 | 公式 | 共识值 | 容错性 |
+> |---|---|---|---|
+> | FFN 比例 | d_ff / d_model | 4（盆地 1~10） | 宽松，别太大 |
+> | 注意力比例 | heads×head_dim / d_model | ≈1 | 主流严格守 1，Google 例外 |
 
 ---
 
@@ -617,6 +748,60 @@ w = w × (1 - lr × λ)                      ← weight decay 单独做，直接
 - **BatchNorm**：对一个 batch 内的激活值归一化，CV 常用，LLM 少用。
 
 > 类比：regularization 是"考试前别死背答案"（防过拟合），normalization 是"保持头脑清醒、情绪稳定"（训练稳定）。
+
+> ⚠️ **重要修正（见下方 E2）**：上面"weight decay 防 overfitting"是**多 epoch 经典 ML 场景**的说法。**LLM 大规模预训练（单 epoch）里不成立**——weight decay 真正作用是和 LR schedule 互动降 loss，不是防 overfitting。
+
+### E2. ⚠️ LLM 里 weight decay 不是防 overfitting（Andriushchenko 2023，CS336 slide）
+
+> **反直觉结论：在 LLM 预训练里，weight decay 不是用来控制 overfitting 的，而是用来"和 learning rate schedule 配合、压低最终 training loss"的优化技巧。**
+
+**证据①（不是防 overfitting）**：画 val loss vs train loss 的散点，三个 weight decay 强度（λ=0.0/0.1/0.3）的点**全落在同一条对角线上**（train loss ≈ val loss）。
+- 若真防 overfitting，高 λ 应在相同 train loss 下 val loss 更低（点掉到对角线下方）→ 但没有。
+- **为什么**：LLM 预训练通常**单 epoch**（每条数据基本只看一遍），本来就不太 overfit，train/val loss 几乎相等 → "防 overfitting"无事可做。
+
+**证据②（真实作用：和 LR schedule 互动）**：training loss 随 iteration 的曲线（cosine LR decay）：
+- **前期**：高 weight decay（λ=0.3）training loss **更高**（看着更差）。
+- **后期**（lr 衰减到很小后）：高 λ 曲线**反超**，最终 training loss **更低**（更好）。
+- → weight decay 的好处在**后期、配合 lr 衰减**才兑现；恒定 lr 时这效果不明显。
+
+**机制【待深入】**：weight decay 持续把权重往 0 拉，相当于变相提高后期的"有效学习率"，让模型在 cosine 尾段还能继续有效下降 → 和 lr schedule **协同**，单看任一个都解释不了。
+
+| 常见误解 | LLM 里的实际结论 |
+|---|---|
+| weight decay 防 overfitting | ❌ 单 epoch 不 overfit，散点全在对角线上 |
+| — | ✅ 和 LR schedule 互动、降低最终 training loss（优化技巧，非正则化） |
+
+> **认知升级**：经典 ML（多 epoch、会反复看数据）里 weight decay = 防 overfitting 的正则化；LLM 预训练（单 epoch）里它换了个身份 = 优化动力学技巧。同一个 `weight_decay=0.1`，作用机制随场景变。
+
+### E3. L2 regularization 到底长啥样？（和 weight decay 为何等价）【需回顾】
+
+> ⚠️ **此条概念还没完全消化，后期再细看**（尤其"L2 梯度 = 把 w 往 0 拉"这步推导）。
+
+> **L2 正则的形态**：在原 loss 后面加"所有权重平方和 × λ"。
+> ```python
+> loss = cross_entropy(logits, labels)        # 原 loss
+> l2_penalty = sum((w**2).sum() for w in model.parameters())  # 所有权重平方和
+> loss = loss + lambda_ * l2_penalty          # λ 控制惩罚力度
+> ```
+> **直觉**：loss 里多了"权重平方和"→ 权重越大 loss 越大 → 优化器倾向保持权重小（除非该权重对降原 loss 真有用）。平方使**大权重惩罚远重于小权重**（w=5→25，w=0.1→0.01），专压过大权重。
+
+> **L2 正则 ≈ weight decay（同一东西两种写法）**：
+> ```python
+> # L2 惩罚项 λ·w² 对 w 求导 = λ·2w，所以更新多了一步：
+> w = w - lr * (原梯度)
+> w = w - lr * lambda_ * 2 * w    # ← 把 w 按比例往 0 拉
+> ```
+> 这就和 day01 D 节的 weight decay `w = w*(1 - lr*λ)` **是同一回事**。
+>
+> | 视角 | 形式 | 改哪 |
+> |---|---|---|
+> | L2 regularization | loss 里加 `λ·Σw²` | loss 函数 |
+> | weight decay | 更新时 `w *= (1-lr·λ)` | optimizer step |
+>
+> - **SGD 下**两者**完全等价**（L2 梯度自然产生"往 0 拉"）。
+> - ⚠️ **Adam 下不等价** → 这就是 AdamW 的由来（D 节记过）：Adam 把 L2 混进梯度会被自适应机制稀释，AdamW 改成"直接缩 w"更干净。
+>
+> **连回 E2**："weight decay 经典上 = L2 正则 = 防 overfitting"——但 LLM 单 epoch 不 overfit，所以经典作用没用武之地（见 E2）。
 
 ### F. hidden_size（模型宽度）与 compute budget
 

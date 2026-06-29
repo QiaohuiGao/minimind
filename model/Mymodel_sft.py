@@ -246,6 +246,7 @@ def mark_only_lora_trainable(model):
     lora_params = []
     # 遍历 model.named_parameters()
     for name, p in model.named_parameters():
+        
         if 'lora' in name:   # 名字里带 lora 的才训练
             p.requires_grad = True
             lora_params.append(p)

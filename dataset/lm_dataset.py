@@ -195,27 +195,22 @@ class DPODataset(Dataset):
         sample = self.samples[index]
         chosen = sample['chosen']  # 是一个 list，里面包含若干 {role, content}
         rejected = sample['rejected']  # 同上
-        chosen_prompt = self.tokenizer.apply_chat_template(
-            chosen, tokenize=False, add_generation_prompt=False
-        )
+        chosen_prompt = self.tokenizer.apply_chat_template(chosen, tokenize=False, add_generation_prompt=False)
         chosen_prompt = post_processing_chat(chosen_prompt)
 
-        rejected_prompt = self.tokenizer.apply_chat_template(
-            rejected, tokenize=False, add_generation_prompt=False
-        )
+        rejected_prompt = self.tokenizer.apply_chat_template(rejected, tokenize=False, add_generation_prompt=False)
         rejected_prompt = post_processing_chat(rejected_prompt)
-        chosen_encoding = self.tokenizer(
-            chosen_prompt, truncation=True, max_length=self.max_length, padding='max_length'
-        )
-        rejected_encoding = self.tokenizer(
-            rejected_prompt, truncation=True, max_length=self.max_length, padding='max_length'
-        )
+        chosen_encoding = self.tokenizer(chosen_prompt, truncation=True, max_length=self.max_length, padding='max_length')
+        rejected_encoding = self.tokenizer(rejected_prompt, truncation=True, max_length=self.max_length, padding='max_length')
 
         chosen_input_ids = chosen_encoding['input_ids']
         chosen_loss_mask = self.generate_loss_mask(chosen_input_ids)
-
+        # input_ids:  <bos>user 你好<eos> <bos>assistant 你好呀<eos>  <pad> <pad>
+        # loss_mask:    0    0   0   0      0      0       1 1 1 1      0    0
+        #                                                 └─assistant 回答─┘
         rejected_input_ids = rejected_encoding['input_ids']
         rejected_loss_mask = self.generate_loss_mask(rejected_input_ids)
+        
         x_chosen = torch.tensor(chosen_input_ids[:-1], dtype=torch.long)
         y_chosen = torch.tensor(chosen_input_ids[1:], dtype=torch.long)
         mask_chosen = torch.tensor(chosen_loss_mask[1:], dtype=torch.long)
