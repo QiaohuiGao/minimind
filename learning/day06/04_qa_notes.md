@@ -235,3 +235,191 @@ mask = torch.cat([batch["mask_chosen"], batch["mask_rejected"]]).to(config.devic
 ```
 
 > 改完 4 个 🔴 就能跑 `python model/Mymodel_dpo.py`。
+
+---
+
+## Part 4：后训练全景 + 蒸馏 + GRPO + CISPO
+
+### Q. 后训练几种方法怎么定位？
+
+| 方法 | 一句话 | 要采样 | 要 reward |
+|---|---|---|---|
+| SFT | 模仿固定答案 | 否 | 否 |
+| DPO | 从"好/坏一对"学偏好 | 否 | 否（偏好对代替） |
+| GRPO/CISPO | 模型自己生成→打分→强化好的 | **是（在线）** | **是** |
+| 蒸馏 | 小模型模仿大模型输出分布 | 否 | 否（压缩，非对齐） |
+
+关键：蒸馏=**压缩模型**；GRPO=**RL 对齐**，两类完全不同的东西。
+
+---
+
+### Q. 知识蒸馏（Knowledge Distillation）
+
+**目标**：把大而强的 Teacher 的能力塞进小而便宜的 Student。
+
+**核心：学软标签，不只学硬标签**
+```
+硬标签：正确答案是"猫"，其它全错
+软标签：Teacher 给整个词表的分布 —— 猫0.7 狗0.2 老虎0.08 桌子0.001
+```
+软标签里"错误选项之间的相对关系"= **dark knowledge**，信息量远大于硬标签。
+
+**loss（train_distillation.py:63）= 两部分加权**
+```python
+# ① 硬标签：和真实答案比（普通 SFT 交叉熵）
+ce_loss = F.cross_entropy(student_logits, true_labels)
+# ② 软标签：和 Teacher 分布比（KL 散度）
+teacher_probs     = F.softmax(teacher_logits / T, dim=-1)
+student_log_probs = F.log_softmax(student_logits / T, dim=-1)
+kl_loss = F.kl_div(student_log_probs, teacher_probs) * (T ** 2)
+# ③ 合并
+loss = alpha * ce_loss + (1 - alpha) * kl_loss   # alpha=1纯SFT, 0纯蒸馏, 0.5各半
+```
+- **KL 散度**：衡量两个分布差多远，目标让 Student 贴近 Teacher。
+- **temperature T>1**：把分布拉平，让小概率 token 的信号显现（dark knowledge 更明显）。minimind 默认 1.5。
+- `*(T**2)`：补偿——除以 T 让梯度变小，乘回 T² 保持量级。
+- **最大不同**：同时加载两个模型，Teacher 全程 `eval()`+`requires_grad_(False)` 只 forward。
+
+---
+
+### Q. GRPO（Group Relative Policy Optimization）
+
+**目标**：RL 后训练——模型自己生成回答→reward 打分→强化高分、抑制低分。在线（边训边生成自己的数据）。
+
+**流程（train_grpo.py）：**
+1. **一题多答**：每个 prompt 采样 G 个回答（num_generations）→ "Group" 由来。
+2. **打分**（:37）：格式分（`<think>`、长度）+ reward model 质量分 + 重复惩罚。
+3. **advantage（精髓, :121）**：
+```python
+grouped = rewards.view(-1, num_generations)
+mean_r = grouped.mean(dim=1); std_r = grouped.std(dim=1)
+advantage = (rewards - mean_r) / (std_r + 1e-4)   # 比组内平均好多少
+```
+   - "Relative" 由来：不看绝对分，看**在同题这组里比平均好/差**。>0 鼓励，<0 抑制。
+   - **省 critic**：PPO 要额外训 value/critic 模型估基准分；GRPO 直接用**组内平均当基准**，省掉整个 critic（比 PPO 简洁的关键）。
+4. **policy loss（:134）**：
+```python
+ratio = torch.exp(per_token_logps - old_per_token_logps)
+clipped_ratio = torch.clamp(ratio, 1-eps, 1+eps)
+per_token_loss = -min(ratio*advantage, clipped_ratio*advantage) - beta*per_token_kl
+```
+   - clip：限制单步改动防训崩；KL 惩罚：拉住别离 ref 太远。
+
+---
+
+### Q. CISPO（GRPO 变体，改裁剪方式）
+
+**解决的问题**：标准 GRPO/PPO 的 clip 有副作用——token 的 ratio 越界时 `min`+clip 让它**梯度归零**（这步不学了）。但越界 token 往往是最关键的"分叉点"token → 丢掉了最重要的信号。
+
+**CISPO 怎么改（train_grpo.py:135）**：
+```python
+clamped_ratio = torch.clamp(ratio, max=epsilon_high).detach()  # 只截上限当权重 + detach
+per_token_loss = -(clamped_ratio * advantage * per_token_logps - beta*per_token_kl)
+```
+- 不用 `min` 裁 token，只把 ratio 截顶当**权重**（detach 只当系数、不传梯度）。
+- 梯度经 `per_token_logps` 照常流回**每个 token** → 没有 token 被裁成 0。
+
+| | 裁剪对象 | 越界 token |
+|---|---|---|
+| GRPO/PPO | 裁 loss（min+clip） | 梯度归零，丢掉 |
+| CISPO | 裁 ratio（当权重 detach） | 仍更新，保留 |
+
+---
+
+### 三者一句话
+
+```
+蒸馏 ：压缩。Teacher软标签 → Student用KL贴近。不采样、不要reward。
+GRPO ：RL对齐。一题多答→打分→组内相对advantage→强化好的。要采样要reward、省critic。
+CISPO：GRPO变体。改裁剪，不丢越界token梯度，保关键信号。
+```
+
+### Q1. 蒸馏/冻结模型时 `eval()` vs `requires_grad_(False)` vs `torch.no_grad()` 有什么区别？（Layer 6）
+
+冻结一个 teacher（蒸馏）或 ref_model（DPO）时常一起出现这三者，但它们是**三件独立的事**，容易混。
+
+| 写法 | 管什么 | 范围/性质 |
+|------|--------|----------|
+| `model.eval()` | forward 的**行为**（关 dropout / 用 BN 的 running stats）| 模式开关 |
+| `model.requires_grad_(False)` | **参数级**冻结，不算/不存梯度 | 永久，in-place 批量 |
+| `with torch.no_grad():` | 这段代码**完全不建计算图** | 代码块级，临时 |
+
+**① `eval()`** —— 只影响"训练/推理行为不同"的层。在 MyModel 里就是 **Dropout**：
+- train() 模式：随机丢弃神经元 → forward 带随机性
+- eval() 模式：dropout 关闭 → 输出**确定、可复现**
+- teacher 必须 eval()，否则同一输入每次分布都不同，student 学的目标会飘。
+
+**② `requires_grad_(False)`** —— 把模型**所有参数**的 requires_grad 一次设成 False（结尾 `_` = in-place 批量，和 LoRA 里 `mark_only_lora_trainable` 同一个概念）。效果：参数不再算/存梯度 → ① 不被训练更新 ② 省大量显存。
+
+**③ 三者正交，缺一不可的误区**：
+- 以为"eval() 了就不算梯度" —— ❌ 错！eval() 只关 dropout，梯度照样算。
+- 只 requires_grad_(False) 不 eval() —— dropout 还开着，分布带噪声。
+- 所以 teacher 要**两个都设**：稳定(eval) + 冻结(requires_grad)。
+
+**④ 和 no_grad 的配合**：模型层面 `eval()` + `requires_grad_(False)` 表明"这是冻结的 teacher"；forward 时再套 `with torch.no_grad():` 让那次前向彻底不建图、最省显存。
+
+```python
+teacher.eval()
+teacher.requires_grad_(False)
+with torch.no_grad():
+    teacher_logits = teacher(input_ids).logits   # 稳定 + 零梯度开销
+```
+
+**一句话**：eval 管 forward 行为（关 dropout 求稳定），requires_grad_ 管参数冻结（不训练省显存），no_grad 管某段代码不建图；三者正交，teacher/ref_model 通常三个一起用。
+
+### Q2. 知识蒸馏里 temperature（除以 T）为什么能软化分布？为什么还要乘 T²？（Layer 6）
+
+## 原理：softmax 看的是「差距」，除以 T 缩小差距
+
+softmax = `exp(x) / exp(x).sum()`，关键在 `exp()` 会**指数放大** logits 间的差距 → 差距大就尖、差距小就平。
+
+除以 T(>1) 把所有 logits 的差距**等比例缩小** → 喂给 exp 的差距变小 → 放大效应变弱 → 分布变平（软化）。
+
+```python
+T=1:  softmax([2, 1, 0])    = [0.67, 0.24, 0.09]   # 尖
+T=2:  softmax([1, 0.5, 0])  = [0.51, 0.31, 0.19]   # 平，次优词冒头
+T=4:  softmax([.5,.25,0])   = [0.40, 0.31, 0.29]   # 更平
+```
+第3个词 0.09→0.19→0.29，T 越大越有"存在感" = 把次优词的 dark knowledge 捞出来。
+
+**两个极端**：T→0 退化成 one-hot（最尖）；T→∞ 变均匀分布（最平）。T 就是"尖↔平"旋钮。
+**名字来源**：物理 Boltzmann 分布——高温=分散、低温=集中。
+
+## 为什么乘 T²
+
+除以 T 会让梯度也等比缩小（大约 1/T² 量级）。乘回 `T**2` 把梯度量级补回来，使蒸馏 loss 的梯度和硬标签 CE 的梯度**量级可比**，方便 `alpha*CE + (1-alpha)*KL` 加权时两边平衡、调 T 时学习动态稳定。
+
+## 💼 面试版回答（口头精简，30 秒能说完）
+
+> "蒸馏里 temperature 用来**软化 teacher 的输出分布**。softmax 靠 exp 指数放大 logits 差距，分布往往很尖、把次优 token 的信息淹没了；**把 logits 除以 T 等比缩小差距，分布变平**，那些'次优但相关'的 token 概率显现出来——这就是蒸馏要传的 dark knowledge，比 one-hot 硬标签信息量大。
+> 至于**乘 T²**：因为除以 T 会让 KL 的梯度按 1/T² 缩小，乘回 T² 让它的梯度量级和硬标签 CE 保持可比，这样两个 loss 加权才平衡、调 T 时训练才稳定。
+> 极端情况：T→1 是原始分布，T→0 退化成 one-hot，T→∞ 趋于均匀。"
+
+**追问可能**：T 一般取多少？→ 1~4 常用（本项目 1.5）。T 太大分布太平、信息糊；太小接近硬标签、失去软化意义。
+
+### Q3. 蒸馏 KL loss 里，为什么 student 用 log_softmax 防数值问题，teacher 用普通 softmax 却不用担心？（Layer 6）
+
+## 数值问题是什么
+`log(softmax(x))` 不稳：某 logit 很负时 softmax 可能**下溢成 0.0**，`log(0.0)=-inf` → loss/梯度炸。
+`log_softmax` 用 **log-sum-exp 技巧**直接算 log，不经过会下溢的中间小数，所以稳。理论上 teacher 也有这风险，但下面两点让它免疫。
+
+## 根因：公式里两个 log 的「乘数」不对称
+`F.kl_div` 逐元素算 `target*(log target - input) = p*log(p) - p*log(q)`：
+
+| 项 | 谁的 log | 乘数 | 安全？ |
+|----|---------|------|-------|
+| `p*log(p)` | teacher | **p 自己** | ✅ p→0 时 p·log(p)→0，自动归零 |
+| `-p*log(q)` | student | **p（teacher）** | ⚠️ q→0 时不会自洽，还带梯度 |
+
+- teacher 的 log **乘自己** → 小概率把自身 log 压回 0（PyTorch 也按 0·log0=0 处理），普通 softmax 够用。
+- student 的 log **乘的是 p 不是 q** → q 下溢时 `-p·log(q)` 变巨大 + 坏梯度 → 必须 log_softmax。
+
+## 第二个原因：teacher 没梯度
+teacher 在 no_grad + detach 里，`p*log(p)` 是**常量**，不参与 backward；数值稳定最要命的是带梯度的项（student 那项，梯度≈ q−p）。死的标准答案不怕噪声，活的、要更新的才怕。
+
+## 术语
+numerical stability / underflow / log-sum-exp trick / KL divergence / log-probs / detach
+
+## 💼 面试版回答
+> "`F.kl_div` 第一个参数要 log 概率、第二个要普通概率，所以 student 取 log、teacher 不取。至于数值稳定：KL 逐元素是 `p·log p − p·log q`。teacher 的 log 那项是 `p·log p`，**乘的是它自己**，p→0 时整项趋于 0，自动安全，而且 teacher 是 detach 的常量没有梯度；student 的 log 那项是 `−p·log q`，**乘的是 teacher 的 p 不是 q**，一旦 q 下溢就会变成巨大值还带坏梯度。所以只有 student 必须用 `log_softmax`（log-sum-exp 直接算 log，避开下溢）。"
+> **追问**：log_softmax 为什么比 log(softmax) 稳？→ 它不显式算出会下溢的中间概率，直接用 logsumexp 得到 log 概率。

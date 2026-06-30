@@ -67,7 +67,8 @@ def main():
     prompt_iter = prompts if input_mode == 0 else iter(lambda: input('💬: '), '')
     for prompt in prompt_iter:
         setup_seed(random.randint(0, 31415926))
-        if input_mode == 0: print(f'💬: {prompt}')
+        if input_mode == 0: 
+            print(f'💬: {prompt}')
         conversation = conversation[-args.historys:] if args.historys else []
         conversation.append({"role": "user", "content": prompt})
         if 'pretrain' in args.weight:

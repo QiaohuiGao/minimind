@@ -137,7 +137,6 @@ class MyModelAttention(nn.Module):
             k = torch.cat((past_k, k), dim=2)
             v = torch.cat((past_v, v), dim=2)
         new_kv = (k, v)
-        
         #  [B, num_keyvalue_heads, past_seq_len, head_dim]
         # └批量┘ └─KV 头数（GQA）─┘ └已缓存的长度┘ └每头维度┘
         # dim0        dim1            dim2         dim3
@@ -146,6 +145,10 @@ class MyModelAttention(nn.Module):
         #    k:   [B, kv_heads,      S,       head_dim]
         # ─────────────────────────────────────────── cat(dim=2)
         #    k:   [B, kv_heads, past_seq_len + S, head_dim]
+        
+        # new_kv = (k, v)   # 每个 tensor：
+        # [B, num_keyvalue_heads, total_S, head_dim]
+        #  └批量┘ └KV头数(少, GQA)┘ └past+S┘ └每头维度┘
 
         k = repeat_kv(k, self.n_rep)
         v = repeat_kv(v, self.n_rep)
@@ -167,20 +170,33 @@ class MyModelAttention(nn.Module):
 
         attn_weight = F.softmax(scores, dim=-1)
         # scores 形状 [B, num_heads, S, total_S]，dim=-1 是最后一维 = total_S（所有 key 那一维）。
-        # 所以 softmax 是对每个 query 那一行的所有 key 做归一化：
+        # ⚠️ scores 后两维 [S, total_S] 是一张表，两个维度都是"序列长度方向"，但角色不同：
+        #    S      (行) = query 位置 = "谁在问"（哪个 token 发起注意力）
+        #    total_S(列) = key   位置 = "谁被看"（被注意的所有 token）
+        # softmax 选 total_S（列）而非 S（行）：要让"每个 query 独立地把注意力分配到它能看到的所有 key 上"。
         #                 key0   key1   key2   key3
         # query_i 这一行:  2.0    1.0    0.5    -inf     ← scores（含 mask）
-        #                   │softmax(dim=-1)
+        #                   │softmax(dim=-1)  ← 只在这一行内部归一化
         #                   ▼
         # attn_weight:    0.60   0.22   0.13    0.00     ← 加起来=1
+        #  → 若沿 S（行）归一化＝各 query 对同一 key 竞争，无意义（query 之间互不相关）。
         # mask 阶段:  把未来位置设成 -inf
         # softmax:   -inf → e^(-inf) → 0      （未来权重归零）
         #         其余正常分配，剩下的加起来还是 1
         attn_weight = self.attn_dropout(attn_weight)
+        # ⚠️ dropout 不是"丢掉小的/不重要的"！它是【训练时】按概率【随机】把一部分权重置 0（和大小无关），
+        #    剩下的放大 1/(1-p) 保持期望；目的是 regularization（防过拟合）。推理时 eval() 会【自动关闭】，一个都不丢。
         output = (attn_weight @ v).transpose(1, 2).reshape(B, S, -1)
-        # 用这组占比去加权平均所有 value 向量：60% 的 key0 的 v + 22% 的 key1 的 v + …。
-        # 所以 softmax 的输出本质是"这个 query 该从哪些 token 那里、各取多少信息"的配方。
-        return self.o_proj(output), new_kv
+        # 两步：① attn_weight @ v：按注意力占比加权平均 value（60%的key0的v + 22%的key1的v + …）
+        #        → [B, heads, S, head_dim]，每个 query、每个 head 一个输出向量
+        #      ② transpose(1,2).reshape：把【多头合并】回每 token 一个 hidden 向量
+        #        [B, heads, S, head_dim] --transpose(1,2)--> [B, S, heads, head_dim] --reshape--> [B, S, heads*head_dim]
+        #        先 transpose 把 S 提到 heads 前，让同一 token 的各 head 在内存上相邻，reshape 才能正确首尾拼接。
+        return self.o_proj(output), new_kv  # o_proj：把拼接后的向量线性投影回标准 hidden_size
+        # output（reshape 后）: [B, S, num_heads*head_dim]
+        # │ o_proj
+        # ▼
+        # [B, S, hidden_size]
 
 
 class MyModelFFN(nn.Module):
@@ -208,6 +224,7 @@ class MyModelBlocks(nn.Module):
         x = x + self.dropout(attn_out)
         x = x + self.dropout(self.ffn(self.ffn_norm(x)))  # self.norm(2) → self.ffn_norm(x)
         return x, new_kv
+    #x.shape=[B, S, Hidden_size]
 
 
 class MyModel(nn.Module):

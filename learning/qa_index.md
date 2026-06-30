@@ -1,7 +1,7 @@
 # Q&A 总索引
 
 > 由 `learning_system` 自动生成，汇总各天问答笔记的问题标题。
-**共 74 条问答，覆盖 5 天。**
+**共 82 条问答，覆盖 5 天。**
 
 
 ## day01 (23 条)
@@ -42,7 +42,7 @@
 - [Q10. 手动读文件 vs `load_dataset` 有什么区别？](day02/04_qa_notes.md)
 - [Q11. LoRA 和 QLoRA 有什么区别？](day02/04_qa_notes.md)
 
-## day05 (27 条)
+## day05 (32 条)
 - [Q1. LoRA 里的 `rank` 是什么意思？](day05/04_qa_notes.md)
 - [Q2. 为什么 LoRA 的 B 矩阵初始化为全零？](day05/04_qa_notes.md)
 - [Q3. LoRA 训练和普通 SFT 训练的区别？](day05/04_qa_notes.md)
@@ -63,6 +63,8 @@
 - [Q15. causal mask 的 `diagonal = total_S - S + 1` 为什么这么写？](day05/04_qa_notes.md)
 - [Q16. `attn_weight = F.softmax(scores, dim=-1)` 在干什么？](day05/04_qa_notes.md)
 - [Q17. `generate_loss_mask`：为什么要 for 循环铺整段，能不能边找 end 边标？](day05/04_qa_notes.md)
+- [Q17b. attention 收尾三件事：多头合并 / o_proj / new_kv](day05/04_qa_notes.md)
+- [Q17c. 什么是 residual（残差连接）？为什么必须有？](day05/04_qa_notes.md)
 - [Q18. `tokens ≈ 20 × params` 这个 Chinchilla 规律到底怎么推算配置？](day05/04_qa_notes.md)
 - [Q19. 推理完整 pipeline（7 步）](day05/04_qa_notes.md)
 - [Q20. 采样策略：怎么从 logits 挑下一个 token ⭐](day05/04_qa_notes.md)
@@ -70,6 +72,14 @@
 - [Q22. 算 loss 时 `x, y` 的 shape 是什么？](day05/04_qa_notes.md)
 - [Q23. greedy decoding：`next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)`](day05/04_qa_notes.md)
 - [Q24. logits 在 pretrain / SFT / DPO 里到底代表什么？（统一理解）⭐](day05/04_qa_notes.md)
+- [Q25. 交叉熵到底在算什么？（惊讶程度）](day05/04_qa_notes.md)
+- [Q26. 带数字的算例（词表4词，正确答案=猫）](day05/04_qa_notes.md)
+- [Q27. 交叉熵和 gradient 是什么关系？⭐](day05/04_qa_notes.md)
+
+## day06 (3 条)
+- [Q1. 蒸馏/冻结模型时 `eval()` vs `requires_grad_(False)` vs `torch.no_grad()` 有什么区别？（Layer 6）](day06/04_qa_notes.md)
+- [Q2. 知识蒸馏里 temperature（除以 T）为什么能软化分布？为什么还要乘 T²？（Layer 6）](day06/04_qa_notes.md)
+- [Q3. 蒸馏 KL loss 里，为什么 student 用 log_softmax 防数值问题，teacher 用普通 softmax 却不用担心？（Layer 6）](day06/04_qa_notes.md)
 
 ## day07 (13 条)
 - [Q1. nvidia-smi 里 `7807MiB / 97887MiB` 是什么意思？](day07/04_qa_notes.md)

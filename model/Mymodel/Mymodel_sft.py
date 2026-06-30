@@ -115,13 +115,9 @@ class Mymodelsftdataset(Dataset):
         prompt = post_processing_chat(prompt)#delete empty thinking process
         # self.max_len 不是 self.max_length
         input_ids = self.tokenizer(prompt, add_special_tokens=False).input_ids[:self.max_len]
-
         pad_input_ids=self.max_len-len(input_ids)
-        
         input_ids=input_ids + pad_input_ids * [self.tokenizer.pad_token_id]
-        
         labels=self.generate_labels(input_ids)
-        
         return torch.tensor(input_ids, dtype=torch.long), torch.tensor(labels, dtype=torch.long)              
                             
 def train_mymodel_sft():

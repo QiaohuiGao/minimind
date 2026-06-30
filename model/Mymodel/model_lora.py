@@ -60,7 +60,8 @@ def apply_lora(model, rank=16):
             # 修改 forward: 原始输出 + LoRA旁路输出
             def forward_with_lora(x, layer1=original_forward, layer2=lora):
                 return layer1(x) + layer2(x)  # W·x + B·A·x
-
+            #   ⚠️ 闭包大坑：必须用默认参数把「当前」的 original_forward 和 lora 锁住，
+            #      否则 Python 闭包是「按引用」的，循环结束后所有层都指向最后一个，全错！
             module.forward = forward_with_lora
 
 

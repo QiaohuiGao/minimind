@@ -6,3 +6,4 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LEARNING_DIR = REPO_ROOT / "learning"
 PROFILE_PATH = LEARNING_DIR / "learner_profile.json"
 QA_INDEX_PATH = LEARNING_DIR / "qa_index.md"
+INTERVIEW_PATH = LEARNING_DIR / "interview_prep.md"

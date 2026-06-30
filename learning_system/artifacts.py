@@ -8,7 +8,9 @@
 import re
 import difflib
 
-from .config import LEARNING_DIR, QA_INDEX_PATH
+from .config import LEARNING_DIR, QA_INDEX_PATH, INTERVIEW_PATH
+
+INTERVIEW_MARKER = "💼"  # 笔记里标了这个的小节 = 面试版回答
 
 # 匹配 "## Q1. xxx" 或 "### Q3. xxx" 这类问答标题
 QA_HEADER_RE = re.compile(r"^#{2,4}\s*(Q\d+[.、．]?\s*.+?)\s*$", re.M)
@@ -95,3 +97,50 @@ def build_index():
     lines.insert(3, f"**共 {total} 条问答，覆盖 {len([d for d in days])} 天。**\n")
     QA_INDEX_PATH.write_text("\n".join(lines), encoding="utf-8")
     return total
+
+
+def _split_qa_blocks(text):
+    """把一篇笔记按 Q 标题切成 [(标题, 正文), ...]。"""
+    matches = list(QA_HEADER_RE.finditer(text))
+    blocks = []
+    for i, m in enumerate(matches):
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        blocks.append((m.group(1).strip(), text[start:end]))
+    return blocks
+
+
+def _extract_interview_section(body):
+    """从一个 Q 正文里抽出 💼 面试版那一小节的内容（不含小节标题本身）。"""
+    captured, capturing = [], False
+    for line in body.splitlines():
+        is_heading = line.lstrip().startswith("#")
+        if is_heading and INTERVIEW_MARKER in line:
+            capturing = True            # 命中面试版小节标题，开始抓（跳过标题行本身）
+            continue
+        if capturing:
+            if is_heading and line.lstrip().startswith("## "):
+                break                   # 遇到下一个同级小节，停
+            captured.append(line)
+    return "\n".join(captured).strip() or None
+
+
+def build_interview_prep():
+    """扫描所有 dayNN 笔记，抽出标了 💼 的面试问答，汇总成 interview_prep.md。"""
+    days = sorted(LEARNING_DIR.glob("day*/04_qa_notes.md"))
+    out = ["# 面试速记", "", "> 由 `learning_system interview` 自动抽取各天笔记里标了 💼 面试版 的问答。", ""]
+    count = 0
+    for note in days:
+        blocks = _split_qa_blocks(note.read_text(encoding="utf-8"))
+        items = [(t, _extract_interview_section(b)) for t, b in blocks if INTERVIEW_MARKER in b]
+        items = [(t, s) for t, s in items if s]
+        if not items:
+            continue
+        out.append(f"## {note.parent.name}\n")
+        for title, section in items:
+            out.append(f"### {title}\n")
+            out.append(section + "\n")
+            count += 1
+    out.insert(3, f"**共 {count} 条面试问答。**\n")
+    INTERVIEW_PATH.write_text("\n".join(out), encoding="utf-8")
+    return count

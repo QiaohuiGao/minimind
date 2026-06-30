@@ -170,6 +170,7 @@ Claude 在本项目中的"系统产出"文件：
 - ✅ `learning/learner_profile.json`：学习者状态单一数据源（known_concepts / blind_spots / curriculum_state）—— 落地了原"待建立"的 concept_map
 - ✅ `learning/qa_index.md`：所有 dayNN 问答的总索引（`learning_system index` 自动生成）
 - ✅ `learning_system/`：把本设计文档落地成的可运行 Python 包（见第六章）
+- ✅ `learning/project_ideas.md`：可写 post / 可立项的选题 backlog（区别于 qa_notes 的"学懂知识点"）
 
 ### 5.4b 仍未建立（待办）
 - `learning/error_log.md`：遇到的 bug 和解决方案汇总

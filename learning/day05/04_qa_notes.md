@@ -439,6 +439,53 @@ token: 推荐 机器 学习 实战 <eos>
 
 ---
 
+### Q17b. attention 收尾三件事：多头合并 / o_proj / new_kv
+
+```python
+output = (attn_weight @ v).transpose(1, 2).reshape(B, S, -1)
+return self.o_proj(output), new_kv
+```
+
+**① 多头合并（transpose + reshape）**：
+```
+attn_weight @ v            → [B, heads, S, head_dim]  每 query 每 head 一个输出向量
+.transpose(1,2)            → [B, S, heads, head_dim]  把 S 提到 heads 前
+.reshape(B, S, -1)         → [B, S, heads*head_dim]   把各 head 首尾拼接成一个向量
+```
+为什么先 transpose 再 reshape：reshape 只按内存顺序合并相邻维度；要拼"同一 token 的所有 head"，得先 transpose 让它们在内存上相邻，否则拼错。
+
+**② o_proj（不只是改形状，是"多头融合器"）**：`nn.Linear(num_heads*head_dim, hidden_size)`。
+- reshape 只是把各 head 输出**并排摆着**，它们彼此还没"交流"（每个 head 独立算的）。
+- o_proj 是**可学习矩阵**，把拼接向量线性组合 → **融合不同 head 的信息**，并投影回 `hidden_size` 接回残差流。
+- 注：常 `num_heads*head_dim == hidden_size`，维度上像 hidden→hidden，但 o_proj **不是单位矩阵**，是学出来的融合矩阵。
+- 类比：多个 head 像几个专家各写报告，reshape 只是订在一起，o_proj 是主编综合成一份结论。
+
+**③ new_kv 的 shape（存 repeat 之前的少头版）**：
+```python
+new_kv = (k, v)   # 每个：[B, num_keyvalue_heads, total_S, head_dim]
+```
+⚠️ 是 `num_keyvalue_heads`（GQA 少头），不是扩展后的 `num_heads`。`new_kv` 在 `repeat_kv` **之前**捕获——因为 repeat 出来的是冗余复制，缓存少头版**省显存**，下一步取出再 repeat。这是 GQA 省 KV cache 的关键。
+
+---
+
+### Q17c. 什么是 residual（残差连接）？为什么必须有？
+
+```python
+x = x + self.dropout(attn_out)                       # attention 子层
+x = x + self.dropout(self.ffn(self.ffn_norm(x)))     # FFN 子层
+```
+residual = **`x = x + f(x)`**：把子层输入原样加到输出上。子层 `f(x)` 只学**增量（改动量）**，不用从头重建。
+
+> pre-norm 细节：norm 只作用在喂给子层的那份（`attn_norm(x)`/`ffn_norm(x)`），`x +` 加的是**没归一化的原始 x** → 残差是条干净直通线。
+
+**两个原因**：
+1. **梯度直通高速路（防梯度消失）⭐**：没 residual 时梯度反传要连乘每层导数（一堆<1的数连乘→趋0→前面层学不动）。有 `x + f(x)`，那条 `+x` 路径导数=1，梯度原样传回不衰减：`梯度 = 1 + (子层导数)`。所以能堆几十上百层还训得动。
+2. **每层只学小修正**：子层只需"在现有表示上微调"，初始 `f(x)≈0` ≈ 恒等映射，至少不比浅层差，再慢慢学。更好优化、更稳。
+
+一个 block 两个子层（attention+FFN）各包一层 residual，主干（residual stream）一路畅通——这也是 attention 输出要 o_proj 投影回 hidden_size 的原因：维度对上才能加回主干。
+
+---
+
 ## Part 4：Scaling Law（Chinchilla 最优配置）
 
 ### Q18. `tokens ≈ 20 × params` 这个 Chinchilla 规律到底怎么推算配置？
@@ -697,3 +744,95 @@ Key vocabulary: *raw/unnormalized scores, log-softmax, gather, sequence-level lo
 **Q6. "Cross-entropy and the DPO log-prob both come from logits. So is SFT just a special case of DPO?"**
 > Headline: "Not quite — they optimize different things. SFT does *imitation* (maximize one answer's likelihood); DPO does *contrastive preference* (rank one answer above another). DPO needs paired chosen/rejected data; SFT only needs one target."
 > 要点:目标不同——SFT 模仿单答案,DPO 对比排序成对数据。共同点只是"都从 logits 取真实 token 的 log-prob"。
+
+---
+
+## Part 7：交叉熵到底是什么 + 和 gradient 的关系
+
+> Q22/Part 6 讲了 loss 的 shape 和流程；这里补"它本质是什么"（惊讶程度直觉）、带数字的算例、以及 loss→gradient 的关系。
+
+### Q25. 交叉熵到底在算什么？（惊讶程度）
+
+**知识锚点：交叉熵 = "模型对正确答案有多惊讶"。** 模型每步对词表每个词输出一个概率（softmax 后和=1），交叉熵只盯一件事：**给"正确答案那个词"分了多少概率？** 给得高（自信蒙对）→ 惊讶小 → loss 小；给得低 → 惊讶大 → loss 大。
+
+```python
+probs   = F.softmax(logits, dim=-1)   # ① 原始分数 → 概率
+p_true  = probs[true_token]           # ② 只取正确答案那个词的概率（其他词不看）
+loss    = -torch.log(p_true)          # ③ 取 -log
+```
+`-log` 的脾气（这正是我们想要的奖惩）：
+```python
+-log(1.0)   = 0.0    # 完美预测，零惩罚
+-log(0.5)   = 0.69
+-log(0.1)   = 2.30   # 分得很低，重罚
+-log(0.001) = 6.9    # 几乎没料到，巨额惩罚
+```
+实际用 `F.cross_entropy(logits, labels)` 一行打包（softmax + 取 -log + 平均）。⚠️ 它**内部自己做 softmax**，喂原始 logits，别自己先 softmax（会做两遍）。
+
+### Q26. 带数字的算例（词表4词，正确答案=猫）
+
+```python
+logits = [2.0, 1.0, 0.0, -1.0]   # 猫 狗 鱼 鸟，正确答案=猫
+# softmax: exp=[7.389, 2.718, 1.0, 0.368], total=11.475
+# probs  = [0.644, 0.237, 0.087, 0.032]   （和=1）
+p_猫  = 0.644
+loss = -ln(0.644) = 0.440
+```
+对比蒙错（同样答案=猫，但高分给了狗）：`p_猫=0.043 → loss=-ln(0.043)=3.14`。**同一个答案，给对它的概率越低，loss 越大。** 多个位置时每个位置算一个再求平均（PAD/-100 跳过、分母也不算）。
+
+### Q27. 交叉熵和 gradient 是什么关系？⭐
+
+**关系链**：交叉熵 loss（多错，一个数）──`backward()`──> 每个参数的 gradient（往哪改能少错）──`optimizer.step()`──> 真的更新。
+- **loss** = 把"多错"压成一个标量。
+- **gradient** = loss 对每个参数的导数 = "把这个参数调大一丁点，loss 变大还是变小、变多少"。
+- **optimizer** = 朝 loss 变小的反方向挪一小步（步长 = learning rate）。
+- 没 loss 就没 gradient——gradient 是"loss 对参数求导"，loss 是被求导的源头。
+
+**交叉熵+softmax 梯度的优美形式**（真实 autograd 验证过）：
+```python
+gradient(对 logits) = softmax(logits) - onehot(正确答案)
+#                    = 模型预测的分布   - 真实答案的分布
+```
+例：答案=token2，`probs=[0.083, 0.081, 0.200, 0.167, 0.468]`：
+```
+              token0  token1  token2(对) token3  token4
+gradient:     +0.083  +0.081   -0.800    +0.167  +0.468
+解读(optimizer走反方向):
+  token2(正确,只给0.20) → 梯度 p-1 = -0.80 → 反向=把分数调高↑(差越多提越狠)
+  token4(错但最自信0.47)→ 梯度 +0.47    → 反向=压最低↓(抢了最多概率)
+  token0/1(错且没怎么给)→ 梯度 +0.08    → 轻轻压一点
+```
+一句话：**梯度 = 模型预测 − 真实答案**；猜得越偏推得越猛，正好猜对（概率=1）梯度=0 不再动。`backward()` 算出的这个"概率-onehot"只是最外层一步，autograd 用链式法则继续往回传到每层 W/embedding/W_q...，optimizer 再用它们更新。
+
+**面试万能收尾**："loss is just *how wrong*, and its gradient is literally *predicted minus true* — that's what backprop pushes down."
+
+---
+
+## Part 8：RL / GRPO rollout（采样生成）
+
+> 从 `rollout_engine.py` / `Mymodel_grpo.py` 的 rollout 阶段冒出的问题。承接 Q20（采样策略）。
+
+### Q28. GRPO rollout 里为什么用 `multinomial` 采样，而不是 argmax？会把最差的词也采进去吗？是 top-k 吗？
+
+```python
+next_logits = logits[:, -1, :] / temperature
+probs = F.softmax(next_logits, dim=-1)
+next_token = torch.multinomial(probs, num_samples=1)   # 不是 argmax
+```
+
+**multinomial = 按概率"加权抽签"，不是均匀随机、也不是只选最大。** 概率高的常被选，低的偶尔被选。数字直觉（probs=[0.70,0.20,0.09,0.01]，抽1万次）：实际采中≈[70%,20%,9%,1%]。
+→ 所以"最差的词会被采进去吗？"**会，但概率≈它自己的概率(1%)，极低**——不是把烂词当好词，是按权重给一点点机会。
+
+**为什么 GRPO 必须采样、不能 argmax**（核心）：argmax 是确定性的，同一 prompt 跑 G 次得到 **G 个一模一样**的答案 → 组内无差异 → 没法比较 → 学不到东西。GRPO 的机制就是"对同一 prompt 生成 G 个**不同**答案 → 打分 → 组内比较 → 好的拉高差的压低"，**多样性是地基**，只能靠采样制造。（对比：推理部署求稳定 → 反而常用 greedy/低 T。）
+
+**这段是 top-k 吗？** 不是。它从**全词表**采样，只用 `temperature` 调节随机度，没加 top-k/top-p。你"想砍掉最差的词"的直觉对——那正是 top-k/top-p 干的事（采样前先过滤长尾），是**互补的额外过滤**，minimind 这里为简单没加。
+
+| 策略 | 怎么挑 | 用在哪 |
+|------|--------|--------|
+| greedy/argmax | 永远选最高 | 确定性推理（要稳定） |
+| multinomial（本代码） | 全词表按概率抽签 | GRPO 训练（要多样性） |
+| top-k | 只在前 k 个里抽签 | 砍长尾烂词 |
+| top-p (nucleus) | 只在累计到 p 的词里抽签 | 砍长尾，数量自适应 |
+| temperature | 抽签前把分布调尖/调平 | 配合上面任意一个 |
+
+**temperature**：`next_logits / T` 后再 softmax。T<1 分布变尖→更像 argmax(保守)；T>1 变平→更随机(探索多，烂词机会也变大)。GRPO 训练常用 T≈1 或略高，**故意保留探索(exploration)**。

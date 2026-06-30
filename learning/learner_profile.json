@@ -1,7 +1,7 @@
 {
   "_comment": "学习者状态的单一数据源 (single source of truth)。由 learning_system 读写，也可手动编辑。",
   "version": "1.0",
-  "last_updated": "2026-06-28",
+  "last_updated": "2026-06-30",
   "learner_profile": {
     "name": "qiaohui",
     "background": "Python 基础，无 ML/DL 背景；有真实 GPU (RTX Pro 6000)，边做边学",
@@ -23,7 +23,10 @@
       "LoRA (rank/低秩分解/monkey-patch 挂载/B 零初始化)",
       "Embedding 查表",
       "VLM 推理架构(概念)",
-      "Python 工程: __file__路径定位 / sys.path / isinstance / setattr / 闭包默认参数快照 / .to()非原地"
+      "Python 工程: __file__路径定位 / sys.path / isinstance / setattr / 闭包默认参数快照 / .to()非原地",
+      "eval/requires_grad_/no_grad 区别",
+      "distillation temperature (软化原理 + T² 补偿)",
+      "KL loss 中 student/teacher log 处理不对称 (log_softmax vs softmax)"
     ],
     "blind_spots": [
       "quantization (INT8/INT4/GPTQ/AWQ)",

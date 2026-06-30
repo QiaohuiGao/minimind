@@ -223,6 +223,37 @@ SwiGLU：
 
 术语：chosen/rejected pair, policy vs reference model, anchor, preference alignment.
 
+### 12.2 How the DPO loss is actually computed（计算链：四个 log-prob → 一个 loss）
+
+> 被追问 "walk me through how the DPO loss is computed" 时用。核心：**四个 sequence-level log-prob → 两个 implicit reward → 一个 logistic loss。**
+
+> "DPO works on **preference pairs** — for the same prompt, a **chosen** and a **rejected** response. The loss is built from **four sequence-level log-probabilities**.
+>
+> First, for each response I compute its **log-probability under the policy model**: take `log_softmax` over the logits, **gather** the log-prob of each actual answer token, and **sum** over the answer tokens. I do the same under the **frozen reference model**. That gives four numbers — policy and reference log-probs, each for chosen and rejected.
+>
+> Then for each response I form an **implicit reward** — the policy log-prob **minus** the reference log-prob — which measures how far the policy has shifted from the reference. The loss is `-log σ(β · (chosen_reward − rejected_reward))`, where **β** controls how strongly we trust the preference signal.
+>
+> Intuitively, minimizing it **raises the chosen response's probability and lowers the rejected one — always relative to the reference**, so the policy can't drift too far from its SFT start."
+
+计算链（脑里的骨架）：
+```python
+# 4 个 sequence-level log-prob：logp = log_softmax(logits).gather(真实token).sum(回答部分)
+logp_policy_chosen, logp_policy_rejected      # policy（在训）
+logp_ref_chosen,    logp_ref_rejected         # reference（冻结, no_grad）
+# 2 个 implicit reward（相对 reference）
+chosen_reward   = logp_policy_chosen   - logp_ref_chosen
+rejected_reward = logp_policy_rejected - logp_ref_rejected
+# loss
+loss = -log(sigmoid(β * (chosen_reward - rejected_reward))).mean()
+```
+
+加分追问：
+> **为什么用差值不用绝对值**："The reward is *relative to the reference* — `logp_policy − logp_ref`. The difference makes the reference an anchor / implicit KL penalty, so the policy improves preference without collapsing its general ability."
+>
+> **σ 和 log 哪来的**："It's the **Bradley-Terry** preference model — the probability that chosen beats rejected is `σ(reward difference)`, and we minimize its negative log-likelihood. So it's really just a **binary classification** loss on which response is preferred."
+
+术语：sequence-level log-probability, log_softmax + gather + sum, implicit reward = logp_policy − logp_ref, β / KL strength, Bradley-Terry, binary classification loss.
+
 ## 13. Inference: prefill vs decode
 
 > "Generation has two phases. **Prefill** processes the whole prompt in one parallel forward pass and fills the KV cache — it's **compute-bound**. **Decode** then generates one token at a time reusing the cache, so each step is cheap in compute but **memory-bound**, reloading weights and cache from HBM for a single token."
@@ -246,6 +277,22 @@ SwiGLU：
 > "In practice people often train smaller models on far more than 20× data, because it makes **inference** cheaper — that's inference-aware scaling, a different objective from pure compute-optimality."
 
 术语：compute-optimal, tokens per parameter, compute budget, inference-aware scaling.
+
+## 16. Cross-entropy / how the loss is computed
+
+> "Cross-entropy measures **how surprised the model is by the correct token**. At each position the model outputs **logits** over the vocabulary; we apply **softmax** to turn them into a probability distribution, then the loss is the **negative log of the probability it assigned to the true token**. If it's confident and right, the loss is near zero; if it puts low probability on the truth, the loss blows up. We average this over all positions in the batch.
+>
+> For a language model there's one key detail: it's **next-token prediction**, so we **shift by one** — the logits at position *i* are scored against the **true token at position i+1**. In code that's `logits[:, :-1]` against `labels[:, 1:]`. We also pass an **ignore_index**, usually -100, so that padding and the prompt tokens don't contribute to the loss — only the positions we actually want the model to learn."
+
+加分项（被追问 loss 和 gradient 的关系时）：
+> "A neat property is that the gradient of cross-entropy through softmax is just **predicted probability minus the one-hot of the true label** — so for the correct token the gradient is `p − 1`, pushing its logit up, and for every wrong token it's `p`, pushing them down. The bigger the mistake, the bigger the push. That clean form is one reason softmax + cross-entropy is the default."
+
+万能收尾：
+> "So the loss is just *how wrong*, and its gradient is literally *predicted minus true* — that's what backprop pushes down."
+
+术语：logits, softmax, negative log-likelihood, next-token prediction, shift by one, ignore_index, gradient = probs − one-hot.
+
+> 讲法要点：**先 intuition（how surprised），别从公式起手**；主动报 **shift-by-one + ignore_index**（区分"看过博客"和"真跑过训练"）；梯度那句 `probs − one-hot` 降级成追问加分项，别一开始就讲（信息过载）。
 
 ---
 

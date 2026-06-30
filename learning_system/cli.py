@@ -66,6 +66,11 @@ def cmd_index(args):
     print(f"✅ 已重建 Q&A 总索引：learning/qa_index.md（共 {total} 条）")
 
 
+def cmd_interview(args):
+    total = artifacts.build_interview_prep()
+    print(f"✅ 已生成面试速记：learning/interview_prep.md（共 {total} 条面试问答）")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="learning_system", description="LLM 学习引导系统")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -90,6 +95,8 @@ def main(argv=None):
     sp.set_defaults(func=cmd_add_qa)
 
     sub.add_parser("index", help="重建 Q&A 总索引").set_defaults(func=cmd_index)
+
+    sub.add_parser("interview", help="抽取 💼 面试版生成面试速记").set_defaults(func=cmd_interview)
 
     args = p.parse_args(argv)
     args.func(args)
